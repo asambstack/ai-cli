@@ -1,0 +1,23 @@
+{
+  "name": "ai-repo-manager",
+  "version": "1.0.0",
+  "description": "Repo context manager for AI code editors",
+  "type": "module",
+  "bin": {
+    "ai": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "link": "npm run build && npm link"
+  },
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "prompts": "^2.4.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/prompts": "^2.4.9",
+    "typescript": "^5.4.0"
+  }
+}
