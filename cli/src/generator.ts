@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
 import type { RepoScan } from "./types.js";
 
 function formatList(items: readonly string[], prefix: string = "- "): string {
@@ -112,5 +112,31 @@ export async function generateContext(scan: RepoScan): Promise<string> {
     sections.push(`## Project Knowledge\n\n${learnings}`);
   }
 
+  // Workspace context — for non-Claude editors that don't walk up directories
+  const workspaceContext = await loadWorkspaceContext(scan.root);
+  if (workspaceContext) {
+    sections.push(`---\n\n${workspaceContext}`);
+  }
+
   return sections.join("\n\n") + "\n";
+}
+
+async function loadWorkspaceContext(repoRoot: string): Promise<string> {
+  // Check for workspace.md symlink in .ai/ (created by ai init --workspace)
+  const localWorkspace = join(repoRoot, ".ai", "workspace.md");
+  try {
+    const content = await readFile(localWorkspace, "utf-8");
+    return content.trim();
+  } catch {
+    // No workspace context, that's fine
+  }
+
+  // Also check parent directory for workspace.md
+  const parentWorkspace = join(dirname(repoRoot), ".ai", "workspace.md");
+  try {
+    const content = await readFile(parentWorkspace, "utf-8");
+    return content.trim();
+  } catch {
+    return "";
+  }
 }

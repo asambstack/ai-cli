@@ -110,7 +110,22 @@ info "Linking ai-manager integration..."
 backup_and_link "$REPO_DIR/agents" "$HOME/.ai-manager/agents"
 backup_and_link "$REPO_DIR/skills" "$HOME/.ai-manager/skills"
 
-# ── 7. Validation ────────────────────────────────────────────────────
+# ── 7. CLI tool ──────────────────────────────────────────────────────
+
+info "Installing ai CLI..."
+
+if command -v node >/dev/null 2>&1 && command -v npm >/dev/null 2>&1; then
+    (cd "$REPO_DIR/cli" && npm install --silent 2>/dev/null && npm run build --silent 2>/dev/null && npm link --force 2>/dev/null)
+    if command -v ai >/dev/null 2>&1; then
+        ok "ai CLI installed globally"
+    else
+        warn "ai CLI build succeeded but 'ai' not found in PATH"
+    fi
+else
+    warn "Node.js not found — skipping ai CLI install"
+fi
+
+# ── 8. Validation ────────────────────────────────────────────────────
 
 echo ""
 info "Validating symlinks..."
@@ -165,9 +180,13 @@ echo "  ~/.claude/rules/common/*  -> repo/claude/rules/*"
 echo "  ~/.config/opencode/opencode.json -> repo/opencode/opencode.json"
 echo ""
 echo "  Usage:"
-echo "    Claude Code:  /review, /debug, /refactor, /feature, /write-tests, /manage"
-echo "    OpenCode:     /review, /debug, /refactor, /feature, /write-tests, /manage"
-echo "    ai-manager:   ai \"your task here\""
+echo "    ai init          Set up repo context for AI editors"
+echo "    ai learn          Add project knowledge"
+echo "    ai refresh        Re-scan and update context"
+echo "    ai status         Show current setup"
+echo ""
+echo "  Claude Code:  /review, /debug, /refactor, /feature, /write-tests, /manage"
+echo "  OpenCode:     /review, /debug, /refactor, /feature, /write-tests, /manage"
 echo ""
 echo "  To update: cd $REPO_DIR && git pull"
 echo ""

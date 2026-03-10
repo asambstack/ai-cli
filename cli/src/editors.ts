@@ -1,4 +1,5 @@
 import { access, symlink, readlink, unlink, mkdir, lstat } from "node:fs/promises";
+import { accessSync } from "node:fs";
 import { join, dirname, relative } from "node:path";
 import { EDITORS, type EditorDef } from "./types.js";
 
@@ -32,7 +33,7 @@ export function detectEditors(root: string): string[] {
       const fullPath = join(root, detectPath);
       // Synchronous check for simplicity in detection
       try {
-        require("node:fs").accessSync(fullPath);
+        accessSync(fullPath);
         if (!detected.includes(editor.id)) {
           detected.push(editor.id);
         }
@@ -54,7 +55,7 @@ export function detectEditors(root: string): string[] {
       if (paths) {
         for (const p of paths) {
           try {
-            require("node:fs").accessSync(p);
+            accessSync(p);
             detected.push(editor.id);
             break;
           } catch {

@@ -1,6 +1,6 @@
 # ai-agents
 
-Portable AI agent environment for Claude Code, OpenCode, and ai-manager. One repository, one install command — full agent system across all three runtimes.
+Portable AI agent environment for Claude Code, OpenCode, Cursor, and other AI editors. One repository, one install command — full agent system with repo context management.
 
 ## What this provides
 
@@ -38,6 +38,20 @@ Portable AI agent environment for Claude Code, OpenCode, and ai-manager. One rep
 ```
 
 **10 global rules** for Claude Code covering coding style, security, testing, git workflow, performance, and more.
+
+**`ai` CLI** for per-repo context management:
+
+```
+ai init                       Scan repo, pick editors, generate context
+ai init --all                 Configure all editors (non-interactive)
+ai init --editors claude,cursor  Configure specific editors only
+ai learn "uses CQRS pattern"  Add project knowledge (interactive category)
+ai learn -c gotchas "text"    Add to specific category
+ai refresh                    Re-scan repo, regenerate context
+ai status                     Show setup, staleness, active editors
+```
+
+Generates a single `.ai/context.md` and symlinks it to every selected editor's context file (CLAUDE.md, .cursorrules, .opencode/instructions.md, etc.).
 
 ## Install
 
@@ -106,11 +120,44 @@ The repository is the single source of truth. Symlinks connect it to each tool's
 - The `instructions.md` file provides auto-routing so OpenCode picks agents from natural language.
 - Works from any directory — no per-project `.opencode/` setup needed.
 
-### ai-manager integration
+### `ai` CLI — repo context manager
 
-- `~/.ai-manager/agents` and `~/.ai-manager/skills` are directory symlinks to `repo/agents` and `repo/skills`.
-- The ai-manager's `opencodeLoader.ts` scans these directories with `readdir`, which transparently follows symlinks.
-- Usage: `ai "your task here"` from any git repository.
+The `ai` command is a repo preparation tool. It scans your project and generates context files that AI editors read on startup.
+
+```bash
+cd ~/my-project
+ai init               # scan, pick editors, generate .ai/context.md + symlinks
+ai learn -c architecture "microservices with event bus"
+ai status             # show setup, staleness warning if >20 commits behind
+ai refresh            # re-scan, regenerate, preserve learnings
+```
+
+**What `ai init` detects (static analysis, zero tokens):**
+- Languages, frameworks, test runners, build tools (from manifests)
+- Directory structure with semantic labels
+- Entry points, CI/CD, config files
+- Git activity (most-changed directories)
+
+**Supported editors:**
+
+| Editor | Context file |
+|---|---|
+| Claude Code | `CLAUDE.md` |
+| OpenCode | `.opencode/instructions.md` |
+| Cursor | `.cursorrules` |
+| Windsurf | `.windsurfrules` |
+| GitHub Copilot | `.github/copilot-instructions.md` |
+| Cline | `.clinerules` |
+| Aider | `CONVENTIONS.md` |
+
+All are symlinks to `.ai/context.md` — one file to maintain, every editor reads it.
+
+**Learning categories for `ai learn`:**
+- `architecture` — system design, patterns, data flow
+- `conventions` — naming, style, file organization
+- `gotchas` — known issues, quirks, workarounds
+- `integrations` — external services, APIs
+- `domain` — business logic, key concepts
 
 ### Agent system
 
@@ -166,6 +213,26 @@ ai-agents/
 │   │   └── *.md
 │   └── prompts/agents/         # Compressed agent prompts
 │       └── *.txt
+├── cli/                        # ai CLI tool (repo context manager)
+│   ├── src/
+│   │   ├── cli.ts              # Entry point and command routing
+│   │   ├── scanner.ts          # Static repo analysis
+│   │   ├── generator.ts        # context.md generation
+│   │   ├── editors.ts          # Editor detection and symlink management
+│   │   ├── types.ts            # Type definitions
+│   │   ├── scanners/           # Per-language scanners
+│   │   │   ├── node.ts
+│   │   │   ├── python.ts
+│   │   │   ├── ruby.ts
+│   │   │   ├── go.ts
+│   │   │   └── rust.ts
+│   │   └── commands/           # CLI command implementations
+│   │       ├── init.ts
+│   │       ├── learn.ts
+│   │       ├── refresh.ts
+│   │       └── status.ts
+│   ├── package.json
+│   └── tsconfig.json
 ├── install.sh
 ├── uninstall.sh
 └── README.md

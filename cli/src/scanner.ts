@@ -1,4 +1,5 @@
 import { readdir, stat, access } from "node:fs/promises";
+import { accessSync } from "node:fs";
 import { join, basename, resolve } from "node:path";
 import { execSync } from "node:child_process";
 import type { RepoScan, DirEntry } from "./types.js";
@@ -175,7 +176,6 @@ export function getCommitsSince(root: string, sinceCommit: string): number {
 }
 
 export function findRepoRoot(dir: string): string | null {
-  const { accessSync } = require("node:fs") as typeof import("node:fs");
   let current = resolve(dir);
   while (true) {
     try {

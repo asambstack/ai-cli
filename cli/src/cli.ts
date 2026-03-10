@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 
 import { resolve } from "node:path";
-import { execSync } from "node:child_process";
+import { accessSync } from "node:fs";
 import chalk from "chalk";
 import { init } from "./commands/init.js";
+import { initWorkspace } from "./commands/workspace.js";
 import { learn } from "./commands/learn.js";
 import { refresh } from "./commands/refresh.js";
 import { status } from "./commands/status.js";
@@ -12,7 +13,7 @@ function findRepoRoot(dir: string): string | null {
   let current = resolve(dir);
   while (true) {
     try {
-      require("node:fs").accessSync(resolve(current, ".git"));
+      accessSync(resolve(current, ".git"));
       return current;
     } catch {
       const parent = resolve(current, "..");
@@ -26,15 +27,20 @@ function printHelp(): void {
   console.log("");
   console.log("  ai — repo context manager for AI code editors");
   console.log("");
-  console.log("  Usage:");
-  console.log("    ai init                       Scan repo, pick editors, generate context");
-  console.log("    ai init --all                 Configure all editors (non-interactive)");
-  console.log("    ai init --editors claude,cursor  Configure specific editors");
-  console.log("    ai learn \"<text>\"              Add knowledge (interactive category)");
-  console.log("    ai learn -c architecture \"<text>\"  Add knowledge to specific category");
-  console.log("    ai refresh                    Re-scan and regenerate context");
-  console.log("    ai status                     Show current setup and staleness");
-  console.log("    ai help                       Show this help");
+  console.log("  Repo commands (run inside a git repo):");
+  console.log("    ai init                          Scan repo, pick editors, generate context");
+  console.log("    ai init --all                    Configure all editors (non-interactive)");
+  console.log("    ai init --editors claude,cursor   Configure specific editors");
+  console.log("    ai learn \"<text>\"                 Add knowledge (interactive category)");
+  console.log("    ai learn -c architecture \"<text>\" Add to specific category");
+  console.log("    ai refresh                       Re-scan and regenerate context");
+  console.log("    ai status                        Show current setup and staleness");
+  console.log("");
+  console.log("  Workspace commands (run from parent directory with multiple repos):");
+  console.log("    ai init --workspace              Scan all sub-repos, generate workspace context");
+  console.log("    ai learn --workspace \"<text>\"     Add cross-repo knowledge");
+  console.log("    ai refresh --workspace           Re-scan all sub-repos");
+  console.log("    ai status --workspace            Show workspace overview");
   console.log("");
   console.log("  Categories for learn:");
   console.log("    architecture    system design, patterns, data flow");
@@ -54,11 +60,72 @@ async function main(): Promise<void> {
   }
 
   const command = args[0];
+  const isWorkspace = args.includes("--workspace");
 
-  // Find repo root (except for help)
+  if (isWorkspace) {
+    // Workspace mode — operates on current directory (no git required)
+    const root = resolve(process.cwd());
+
+    switch (command) {
+      case "init": {
+        await initWorkspace(root);
+        break;
+      }
+
+      case "learn": {
+        const categoryIndex = args.indexOf("-c");
+        let category: string | undefined;
+        let textParts: string[];
+
+        if (categoryIndex !== -1) {
+          category = args[categoryIndex + 1];
+          textParts = args.filter(
+            (_, i) =>
+              i !== 0 &&
+              i !== categoryIndex &&
+              i !== categoryIndex + 1 &&
+              args[i] !== "--workspace"
+          );
+        } else {
+          textParts = args.slice(1).filter((a) => a !== "--workspace");
+        }
+
+        const text = textParts.join(" ").trim();
+        if (!text) {
+          console.log(chalk.yellow("  Usage: ai learn --workspace \"your knowledge here\""));
+          return;
+        }
+
+        await learn(root, text, { category });
+        break;
+      }
+
+      case "refresh": {
+        // Refresh workspace = re-init
+        await initWorkspace(root);
+        break;
+      }
+
+      case "status": {
+        await status(root);
+        break;
+      }
+
+      default: {
+        console.log(chalk.red(`  Unknown command: ${command}`));
+        printHelp();
+        process.exit(1);
+      }
+    }
+
+    return;
+  }
+
+  // Repo mode — requires git
   const root = findRepoRoot(process.cwd());
   if (!root) {
     console.log(chalk.red("  Not inside a git repository."));
+    console.log(chalk.dim("  Use --workspace flag for multi-repo directories."));
     process.exit(1);
   }
 
@@ -76,8 +143,6 @@ async function main(): Promise<void> {
     }
 
     case "learn": {
-      // Parse: ai learn -c <category> "<text>"
-      // Or:    ai learn "<text>"
       const categoryIndex = args.indexOf("-c");
       let category: string | undefined;
       let textParts: string[];

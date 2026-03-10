@@ -17,3 +17,14 @@ When the user describes a task, automatically detect the intent and apply the co
 2. Route to a **single agent** for focused, single-purpose requests.
 3. Load only the matched agent — do not load all agents at once.
 4. If no agent matches, handle the task directly.
+
+## Learning Capture
+
+At the end of a task, if you discovered something important about this project that isn't already in context, run:
+
+```bash
+ai learn -c <category> "<what you learned>"
+```
+
+Categories: architecture, conventions, gotchas, integrations, domain.
+Only capture knowledge that would help future sessions. One sentence per entry.
