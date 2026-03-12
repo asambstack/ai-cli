@@ -1,0 +1,1415 @@
+/* ═══════════════════════════════════════════════════
+   AI DASHBOARD — Dark Industrial Control Room
+   Aesthetic: mission control × editorial × film noir
+   Typography: Instrument Sans (display) + IBM Plex Mono (data)
+   Accent: electric amber (#f59e0b) on deep charcoal
+   ═══════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+/* ── Force dark theme, override Pico ── */
+:root,
+[data-theme="dark"],
+[data-theme="auto"] {
+  --sidebar-width: 260px;
+
+  /* Palette */
+  --surface-0: #0a0a0b;
+  --surface-1: #111113;
+  --surface-2: #1a1a1e;
+  --surface-3: #232328;
+  --surface-4: #2c2c33;
+  --border: #2a2a32;
+  --border-subtle: #1e1e25;
+  --text-primary: #e8e6e3;
+  --text-secondary: #9d9b97;
+  --text-muted: #5c5a56;
+  --accent: #f59e0b;
+  --accent-dim: rgba(245, 158, 11, 0.12);
+  --accent-hover: #fbbf24;
+  --status-green: #34d399;
+  --status-yellow: #fbbf24;
+  --status-red: #f87171;
+  --status-gray: #4b4b55;
+
+  /* Override Pico variables */
+  --pico-background-color: var(--surface-0);
+  --pico-color: var(--text-primary);
+  --pico-muted-color: var(--text-muted);
+  --pico-muted-border-color: var(--border);
+  --pico-primary: var(--accent);
+  --pico-primary-hover: var(--accent-hover);
+  --pico-primary-focus: var(--accent-dim);
+  --pico-card-background-color: var(--surface-1);
+  --pico-card-border-color: var(--border);
+  --pico-table-border-color: var(--border-subtle);
+  --pico-nav-element-spacing-horizontal: 0;
+  --pico-nav-element-spacing-vertical: 0;
+
+  color-scheme: dark;
+}
+
+/* ── Base ── */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--surface-0);
+  color: var(--text-primary);
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: row;
+  min-height: 100vh;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  background: var(--surface-0);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Subtle film grain overlay */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Instrument Sans', sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+a:hover {
+  color: var(--accent-hover);
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--surface-4);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* ════════════════════════════════════════
+   SIDEBAR — Dark terminal bezel
+   Override ALL Pico nav defaults
+   ════════════════════════════════════════ */
+nav.sidebar {
+  width: var(--sidebar-width);
+  min-width: var(--sidebar-width);
+  min-height: 100vh;
+  padding: 0;
+  border-right: 1px solid var(--border);
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  overflow-y: auto;
+  background: var(--surface-1);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Sidebar header — amber glow strip */
+nav.sidebar .sidebar-header {
+  padding: 1.75rem 1.5rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  position: relative;
+}
+
+nav.sidebar .sidebar-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent) 0%, transparent 100%);
+}
+
+nav.sidebar h2 {
+  font-family: 'Instrument Sans', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+nav.sidebar h2 span {
+  color: var(--accent);
+}
+
+/* CRITICAL: Override Pico's nav ul from flex-row to column */
+nav.sidebar ul {
+  display: flex !important;
+  flex-direction: column !important;
+  list-style: none !important;
+  padding: 0.75rem !important;
+  margin: 0 !important;
+  flex: 1;
+  gap: 2px !important;
+}
+
+nav.sidebar ul li {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+nav.sidebar ul li a {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 6px;
+  text-decoration: none;
+  font-family: 'Instrument Sans', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  transition: all 0.15s ease;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+nav.sidebar ul li a .nav-svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  opacity: 0.5;
+}
+
+nav.sidebar ul li a:hover {
+  color: var(--text-primary);
+  background: var(--surface-2);
+  border-color: var(--border);
+}
+
+nav.sidebar ul li a.active {
+  color: var(--accent);
+  background: var(--accent-dim);
+  border-color: rgba(245, 158, 11, 0.2);
+  font-weight: 600;
+}
+
+nav.sidebar ul li a.active .nav-svg {
+  opacity: 1;
+}
+
+/* Section label in sidebar */
+nav.sidebar ul li.nav-section-label {
+  font-family: 'Instrument Sans', sans-serif;
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 1rem 0.85rem 0.3rem;
+  margin: 0;
+}
+
+/* Child nav items — indented, no icon */
+nav.sidebar ul li a.nav-child {
+  padding-left: 2.65rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+nav.sidebar ul li a.nav-child:hover {
+  color: var(--text-secondary);
+}
+
+nav.sidebar ul li a.nav-child.active {
+  color: var(--accent);
+}
+
+/* Divider between nav sections */
+nav.sidebar ul li.nav-divider {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: 0.5rem 0.85rem;
+  padding: 0;
+}
+
+/* Sidebar footer */
+nav.sidebar .sidebar-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+}
+
+/* ════════════════════════════════════════
+   MAIN CONTENT
+   ════════════════════════════════════════ */
+main.content {
+  margin-left: var(--sidebar-width);
+  padding: 2.5rem 3rem;
+  flex: 1;
+  min-width: 0; /* prevent flex child overflow */
+  animation: fadeUp 0.4s ease both;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+main.content h1 {
+  font-size: 2rem;
+  margin-top: 0;
+  margin-bottom: 0.25rem;
+  letter-spacing: -0.03em;
+}
+
+/* Back link for detail pages */
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: 'Instrument Sans', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-bottom: 1.25rem;
+  transition: color 0.15s ease;
+}
+
+.back-link:hover {
+  color: var(--accent);
+}
+
+/* Page subtitle / summary line */
+.page-summary {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: 2rem;
+  letter-spacing: 0.02em;
+}
+
+.page-summary .count {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.page-summary .alert {
+  color: var(--status-red);
+  font-weight: 600;
+}
+
+/* ════════════════════════════════════════
+   STALENESS BADGES — Glowing status pills
+   ════════════════════════════════════════ */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 4px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.badge-green {
+  background: rgba(52, 211, 153, 0.12);
+  color: var(--status-green);
+  box-shadow: inset 0 0 0 1px rgba(52, 211, 153, 0.25);
+}
+
+.badge-yellow {
+  background: rgba(251, 191, 36, 0.12);
+  color: var(--status-yellow);
+  box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.25);
+}
+
+.badge-red {
+  background: rgba(248, 113, 113, 0.12);
+  color: var(--status-red);
+  box-shadow: inset 0 0 0 1px rgba(248, 113, 113, 0.25);
+}
+
+.badge-gray {
+  background: var(--surface-3);
+  color: var(--text-muted);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+
+/* ════════════════════════════════════════
+   REPO TABLE — Bloomberg terminal density
+   ════════════════════════════════════════ */
+.table-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-1);
+}
+
+table.repo-table {
+  width: 100%;
+  min-width: 800px;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.82rem;
+  margin: 0;
+}
+
+table.repo-table thead th {
+  text-align: left;
+  white-space: nowrap;
+  font-family: 'Instrument Sans', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 0.75rem 0.85rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+table.repo-table thead th:first-child {
+  border-radius: 7px 0 0 0;
+}
+
+table.repo-table thead th:last-child {
+  border-radius: 0 7px 0 0;
+}
+
+table.repo-table tbody td {
+  padding: 0.55rem 0.85rem;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  transition: all 0.1s ease;
+}
+
+table.repo-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+table.repo-table tbody tr {
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+table.repo-table tbody tr:hover td {
+  background: var(--surface-2);
+  color: var(--text-primary);
+}
+
+table.repo-table tbody tr:hover td:first-child {
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+/* Repo name column */
+table.repo-table .repo-name {
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+/* Language tags */
+.lang-tag {
+  display: inline-block;
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  font-size: 0.72rem;
+  background: var(--surface-3);
+  color: var(--text-secondary);
+  margin-right: 0.25rem;
+  white-space: nowrap;
+}
+
+/* Status indicator */
+.status-configured {
+  color: var(--status-green);
+  font-weight: 500;
+}
+
+.status-uninit {
+  color: var(--text-muted);
+}
+
+/* ════════════════════════════════════════
+   REPO DETAIL PAGE — Full inspector view
+   ════════════════════════════════════════ */
+
+/* Header bar */
+.repo-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.repo-header h1 {
+  margin: 0;
+  font-size: 1.75rem;
+  flex: 1;
+  min-width: 200px;
+}
+
+.repo-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.repo-actions .badge {
+  margin-right: 0.25rem;
+}
+
+.btn-action {
+  font-family: 'Instrument Sans', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 0.45rem 1rem;
+  border-radius: 5px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.btn-action:hover {
+  border-color: var(--text-muted);
+  color: var(--text-primary);
+  background: var(--surface-3);
+  transform: translateY(-1px);
+}
+
+.btn-action.btn-primary {
+  background: var(--accent);
+  color: var(--surface-0);
+  border-color: var(--accent);
+}
+
+.btn-action.btn-primary:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+}
+
+.btn-action .btn-icon {
+  font-size: 0.85rem;
+}
+
+/* Sync indicator */
+.htmx-request .btn-action {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.sync-result {
+  animation: fadeUp 0.3s ease both;
+  padding: 0.75rem 1.25rem;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid var(--border);
+}
+
+.sync-result.success {
+  background: rgba(52, 211, 153, 0.08);
+  border-color: rgba(52, 211, 153, 0.25);
+  color: var(--status-green);
+}
+
+.sync-result.error {
+  background: rgba(248, 113, 113, 0.08);
+  border-color: rgba(248, 113, 113, 0.25);
+  color: var(--status-red);
+}
+
+/* Metadata cards row */
+.meta-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 2.5rem;
+}
+
+.meta-card {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.meta-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3px;
+  height: 100%;
+  background: var(--accent);
+  opacity: 0.4;
+}
+
+.meta-card .meta-label {
+  display: block;
+  font-family: 'Instrument Sans', sans-serif;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 0.35rem;
+}
+
+.meta-card .meta-value {
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.meta-card .meta-value.muted {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+/* Section panels */
+.section-panel {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+  animation: slideIn 0.25s ease both;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.section-panel .section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.1s ease;
+}
+
+.section-panel .section-header:hover {
+  background: var(--surface-3);
+}
+
+.section-panel .section-header h3 {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.section-panel .section-header .section-badge {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  background: var(--surface-0);
+  padding: 0.15rem 0.5rem;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+}
+
+.section-panel .section-body {
+  padding: 1.25rem;
+}
+
+.section-panel pre {
+  background: var(--surface-0);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1rem;
+  margin: 0;
+  max-height: 500px;
+  overflow-y: auto;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.section-panel code {
+  background: none;
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+/* No context state */
+.no-context {
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.no-context code {
+  background: var(--surface-3);
+  padding: 0.15rem 0.5rem;
+  border-radius: 3px;
+  font-size: 0.8rem;
+  color: var(--accent);
+}
+
+/* ════════════════════════════════════════
+   KNOWLEDGE SECTION — Integrated in repo detail
+   ════════════════════════════════════════ */
+.knowledge-section .section-body {
+  padding: 0;
+}
+
+/* CRITICAL: Override Pico's form element block styling */
+.knowledge-add {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  gap: 0.5rem !important;
+  align-items: center !important;
+  padding: 0.85rem 1.25rem !important;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-0);
+  margin: 0;
+}
+
+.knowledge-add * {
+  margin-bottom: 0 !important;
+}
+
+.knowledge-add select {
+  font-family: 'IBM Plex Mono', monospace !important;
+  font-size: 0.8rem !important;
+  background: var(--surface-1) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-primary) !important;
+  border-radius: 4px !important;
+  padding: 0.4rem 0.65rem !important;
+  margin: 0 !important;
+  width: auto !important;
+  display: inline-block !important;
+  flex-shrink: 0;
+}
+
+.knowledge-add input[type="text"] {
+  font-family: 'IBM Plex Mono', monospace !important;
+  font-size: 0.8rem !important;
+  background: var(--surface-1) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-primary) !important;
+  border-radius: 4px !important;
+  padding: 0.4rem 0.65rem !important;
+  margin: 0 !important;
+  width: auto !important;
+  display: inline-block !important;
+  flex: 1 1 0% !important;
+  min-width: 100px !important;
+}
+
+.knowledge-add select:focus,
+.knowledge-add input[type="text"]:focus {
+  border-color: var(--accent) !important;
+  outline: none;
+  box-shadow: 0 0 0 2px var(--accent-dim);
+}
+
+.knowledge-add input[type="text"]::placeholder {
+  color: var(--text-muted);
+}
+
+.knowledge-add button[type="submit"] {
+  font-family: 'Instrument Sans', sans-serif !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.04em;
+  padding: 0.45rem 1.25rem !important;
+  background: var(--accent) !important;
+  color: var(--surface-0) !important;
+  border: none !important;
+  border-radius: 4px !important;
+  cursor: pointer;
+  white-space: nowrap !important;
+  width: auto !important;
+  display: inline-block !important;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.knowledge-add button[type="submit"]:hover {
+  background: var(--accent-hover) !important;
+}
+
+/* Learning entries list */
+.knowledge-entries {
+  padding: 0.5rem 0;
+}
+
+.learning-group {
+  margin: 0;
+  padding: 0;
+}
+
+.learning-group h3 {
+  font-family: 'Instrument Sans', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin: 0;
+  padding: 0.5rem 1.25rem 0.3rem;
+  background: var(--surface-0);
+  border-top: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.learning-group:first-child h3 {
+  border-top: none;
+}
+
+.learning-entry {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.55rem 1.25rem;
+  transition: background 0.1s ease;
+}
+
+.learning-entry:hover {
+  background: var(--surface-2);
+}
+
+.learning-entry .text {
+  flex: 1;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  font-size: 0.82rem;
+}
+
+.learning-entry .date {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  white-space: nowrap;
+  padding-top: 0.15rem;
+}
+
+.learning-entry .actions {
+  display: flex;
+  gap: 0.25rem;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.learning-entry:hover .actions {
+  opacity: 1;
+}
+
+.learning-entry .actions button {
+  padding: 0.15rem 0.45rem;
+  font-size: 0.68rem;
+  font-family: 'Instrument Sans', sans-serif;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  margin: 0;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.learning-entry .actions button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.knowledge-empty {
+  padding: 2rem 1.25rem;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+/* ════════════════════════════════════════
+   AGENT EDITOR — Config management
+   ════════════════════════════════════════ */
+
+/* Tabs — underline style */
+.tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 1.5rem;
+}
+
+.tabs a {
+  padding: 0.6rem 1.25rem;
+  text-decoration: none;
+  font-family: 'Instrument Sans', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: all 0.15s ease;
+}
+
+.tabs a:hover {
+  color: var(--text-secondary);
+}
+
+.tabs a.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  font-weight: 600;
+}
+
+/* File list */
+.file-list {
+  display: flex !important;
+  flex-direction: column !important;
+  list-style: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  gap: 2px !important;
+}
+
+.file-list li {
+  padding: 0.6rem 0.85rem;
+  cursor: pointer;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  transition: all 0.1s ease;
+  border: 1px solid transparent;
+}
+
+.file-list li:hover {
+  background: var(--surface-2);
+  border-color: var(--border);
+}
+
+.file-list li.active {
+  background: var(--accent-dim);
+  border-color: rgba(245, 158, 11, 0.2);
+}
+
+.file-list li strong {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.file-list li.active strong {
+  color: var(--accent);
+}
+
+.file-list li small {
+  color: var(--text-muted) !important;
+  font-size: 0.72rem;
+  line-height: 1.3;
+}
+
+/* Two-panel layout */
+.two-panel {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 1.5rem;
+}
+
+/* Editor area */
+#editor-panel h3 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+#editor-panel textarea {
+  font-family: 'IBM Plex Mono', monospace !important;
+  font-size: 0.82rem !important;
+  line-height: 1.6 !important;
+  background: var(--surface-0) !important;
+  color: var(--text-secondary) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 6px;
+  padding: 1rem;
+  resize: vertical;
+  min-height: 550px;
+  transition: border-color 0.15s ease;
+}
+
+#editor-panel textarea:focus {
+  border-color: var(--accent) !important;
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-dim);
+}
+
+/* Save button in editor */
+#save-btn {
+  font-family: 'Instrument Sans', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  padding: 0.45rem 1.25rem;
+  background: var(--accent);
+  color: var(--surface-0);
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+#save-btn:hover {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25);
+}
+
+/* ════════════════════════════════════════
+   FORMS — Legacy support
+   ════════════════════════════════════════ */
+.add-form {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-end;
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.add-form select,
+.add-form input[type="text"] {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.82rem;
+  background: var(--surface-0);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  border-radius: 5px;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0;
+  transition: border-color 0.15s ease;
+}
+
+.add-form select:focus,
+.add-form input[type="text"]:focus {
+  border-color: var(--accent);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-dim);
+}
+
+.add-form input[type="text"] {
+  flex: 1;
+}
+
+.add-form button[type="submit"] {
+  font-family: 'Instrument Sans', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.5rem 1.5rem;
+  background: var(--accent);
+  color: var(--surface-0);
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* Inline edit */
+.inline-edit {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.4rem 1.25rem;
+  background: var(--surface-2);
+}
+
+.inline-edit input {
+  flex: 1;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.82rem;
+  background: var(--surface-0);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  border-radius: 4px;
+  padding: 0.35rem 0.6rem;
+  margin: 0;
+}
+
+.inline-edit input:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.inline-edit button {
+  font-family: 'Instrument Sans', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  margin: 0;
+  padding: 0.3rem 0.7rem;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  transition: all 0.1s ease;
+}
+
+.inline-edit button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ════════════════════════════════════════
+   EMPTY STATE
+   ════════════════════════════════════════ */
+.empty-state {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: var(--text-muted);
+}
+
+.empty-state p {
+  font-size: 0.85rem;
+  max-width: 300px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+/* ════════════════════════════════════════
+   TOAST NOTIFICATIONS
+   ════════════════════════════════════════ */
+.toast {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  padding: 0.65rem 1.25rem;
+  border-radius: 6px;
+  background: var(--surface-2);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-size: 0.82rem;
+  font-weight: 500;
+  z-index: 100;
+  animation: toastIn 0.3s ease, toastOut 0.3s ease 2.7s forwards;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes toastOut {
+  to { opacity: 0; transform: translateY(4px); }
+}
+
+/* ════════════════════════════════════════
+   STAGGERED LOAD ANIMATIONS
+   ════════════════════════════════════════ */
+table.repo-table tbody tr {
+  animation: rowFade 0.3s ease both;
+}
+
+table.repo-table tbody tr:nth-child(1)  { animation-delay: 0.02s; }
+table.repo-table tbody tr:nth-child(2)  { animation-delay: 0.04s; }
+table.repo-table tbody tr:nth-child(3)  { animation-delay: 0.06s; }
+table.repo-table tbody tr:nth-child(4)  { animation-delay: 0.08s; }
+table.repo-table tbody tr:nth-child(5)  { animation-delay: 0.10s; }
+table.repo-table tbody tr:nth-child(6)  { animation-delay: 0.12s; }
+table.repo-table tbody tr:nth-child(7)  { animation-delay: 0.14s; }
+table.repo-table tbody tr:nth-child(8)  { animation-delay: 0.16s; }
+table.repo-table tbody tr:nth-child(9)  { animation-delay: 0.18s; }
+table.repo-table tbody tr:nth-child(10) { animation-delay: 0.20s; }
+table.repo-table tbody tr:nth-child(11) { animation-delay: 0.22s; }
+table.repo-table tbody tr:nth-child(12) { animation-delay: 0.24s; }
+table.repo-table tbody tr:nth-child(13) { animation-delay: 0.26s; }
+table.repo-table tbody tr:nth-child(14) { animation-delay: 0.28s; }
+table.repo-table tbody tr:nth-child(15) { animation-delay: 0.30s; }
+table.repo-table tbody tr:nth-child(16) { animation-delay: 0.32s; }
+table.repo-table tbody tr:nth-child(17) { animation-delay: 0.34s; }
+table.repo-table tbody tr:nth-child(18) { animation-delay: 0.36s; }
+table.repo-table tbody tr:nth-child(19) { animation-delay: 0.38s; }
+table.repo-table tbody tr:nth-child(20) { animation-delay: 0.40s; }
+
+@keyframes rowFade {
+  from { opacity: 0; transform: translateX(-6px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.section-panel:nth-child(1) { animation-delay: 0.05s; }
+.section-panel:nth-child(2) { animation-delay: 0.12s; }
+.section-panel:nth-child(3) { animation-delay: 0.19s; }
+
+.meta-card:nth-child(1) { animation: fadeUp 0.25s ease 0.05s both; }
+.meta-card:nth-child(2) { animation: fadeUp 0.25s ease 0.10s both; }
+.meta-card:nth-child(3) { animation: fadeUp 0.25s ease 0.15s both; }
+.meta-card:nth-child(4) { animation: fadeUp 0.25s ease 0.20s both; }
+.meta-card:nth-child(5) { animation: fadeUp 0.25s ease 0.25s both; }
+
+.file-list li:nth-child(1)  { animation: fadeUp 0.2s ease 0.02s both; }
+.file-list li:nth-child(2)  { animation: fadeUp 0.2s ease 0.04s both; }
+.file-list li:nth-child(3)  { animation: fadeUp 0.2s ease 0.06s both; }
+.file-list li:nth-child(4)  { animation: fadeUp 0.2s ease 0.08s both; }
+.file-list li:nth-child(5)  { animation: fadeUp 0.2s ease 0.10s both; }
+.file-list li:nth-child(6)  { animation: fadeUp 0.2s ease 0.12s both; }
+.file-list li:nth-child(7)  { animation: fadeUp 0.2s ease 0.14s both; }
+.file-list li:nth-child(8)  { animation: fadeUp 0.2s ease 0.16s both; }
+
+/* ════════════════════════════════════════
+   INIT PANEL — Editor selection
+   ════════════════════════════════════════ */
+.init-panel {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+  animation: slideIn 0.2s ease both;
+}
+
+.init-form {
+  padding: 0;
+  margin: 0;
+}
+
+.init-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+}
+
+.init-panel-header h3 {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.editor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0.5rem;
+  padding: 1.25rem;
+}
+
+.editor-option {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+  padding: 0.65rem 0.85rem !important;
+  background: var(--surface-0) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+  margin: 0 !important;
+}
+
+.editor-option:hover {
+  border-color: var(--accent) !important;
+  background: var(--surface-2) !important;
+}
+
+.editor-option input[type="checkbox"] {
+  width: 16px !important;
+  height: 16px !important;
+  margin: 0 !important;
+  accent-color: var(--accent);
+  flex-shrink: 0;
+}
+
+.editor-option input[type="checkbox"]:checked + .editor-label {
+  color: var(--accent);
+}
+
+.editor-label {
+  font-family: 'Instrument Sans', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.editor-id {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  background: var(--surface-2);
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+}
+
+.init-panel-footer {
+  padding: 0.85rem 1.25rem;
+  border-top: 1px solid var(--border);
+  background: var(--surface-2);
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ════════════════════════════════════════
+   PICO OVERRIDES — Tame the framework
+   ════════════════════════════════════════ */
+select,
+input[type="text"],
+textarea {
+  --pico-background-color: var(--surface-0);
+  --pico-border-color: var(--border);
+  --pico-color: var(--text-primary);
+}
+
+button.outline,
+button.outline.secondary {
+  font-family: 'Instrument Sans', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-color: var(--border);
+  color: var(--text-secondary);
+  padding: 0.3rem 0.7rem;
+  border-radius: 4px;
+}
+
+button.outline:hover,
+button.outline.secondary:hover {
+  border-color: var(--text-secondary);
+  color: var(--text-primary);
+  background: var(--surface-3);
+}
+
+/* ════════════════════════════════════════
+   PAGE FOOTER
+   ════════════════════════════════════════ */
+.page-footer {
+  margin-top: 3rem;
+  padding: 1.5rem 0;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.page-footer .footer-text {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+}
+
+.page-footer code {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.72rem;
+  background: var(--surface-2);
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  color: var(--text-secondary);
+}
+
+details > summary {
+  --pico-border-color: var(--border);
+}
+
+/* ════════════════════════════════════════
+   RESPONSIVE
+   ════════════════════════════════════════ */
+@media (max-width: 1000px) {
+  :root { --sidebar-width: 200px; }
+  main.content { padding: 2rem; }
+  .two-panel { grid-template-columns: 180px 1fr; }
+  .meta-cards { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+}
+
+@media (max-width: 700px) {
+  nav.sidebar {
+    position: static;
+    width: 100%;
+    min-width: 100%;
+    min-height: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    flex-direction: row;
+  }
+  nav.sidebar .sidebar-header { padding: 1rem; }
+  nav.sidebar ul {
+    flex-direction: row !important;
+    padding: 0 0.5rem !important;
+    overflow-x: auto;
+  }
+  nav.sidebar .sidebar-footer { display: none; }
+  main.content {
+    margin-left: 0;
+    padding: 1.5rem;
+  }
+  .two-panel { grid-template-columns: 1fr; }
+  .meta-cards { grid-template-columns: 1fr 1fr; }
+  body { flex-direction: column; }
+}

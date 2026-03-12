@@ -8,6 +8,7 @@ import { initWorkspace } from "./commands/workspace.js";
 import { learn } from "./commands/learn.js";
 import { refresh } from "./commands/refresh.js";
 import { status } from "./commands/status.js";
+import { dashboard } from "./commands/dashboard.js";
 
 function findRepoRoot(dir: string): string | null {
   let current = resolve(dir);
@@ -49,6 +50,9 @@ function printHelp(): void {
   console.log("    integrations    external services, APIs");
   console.log("    domain          business logic, key concepts");
   console.log("");
+  console.log("  Other commands:");
+  console.log("    ai dashboard                     Open visual dashboard in browser");
+  console.log("");
 }
 
 async function main(): Promise<void> {
@@ -60,6 +64,13 @@ async function main(): Promise<void> {
   }
 
   const command = args[0];
+
+  // Global commands (no git/workspace required)
+  if (command === "dashboard") {
+    await dashboard();
+    return;
+  }
+
   const isWorkspace = args.includes("--workspace");
 
   if (isWorkspace) {

@@ -112,30 +112,32 @@ export async function generateContext(scan: RepoScan): Promise<string> {
     sections.push(`## Project Knowledge\n\n${learnings}`);
   }
 
-  // Workspace context — for non-Claude editors that don't walk up directories
-  const workspaceContext = await loadWorkspaceContext(scan.root);
-  if (workspaceContext) {
-    sections.push(`---\n\n${workspaceContext}`);
+  // Workspace context — link instead of embedding to save ~1,600 tokens
+  const workspacePath = await findWorkspaceContext(scan.root);
+  if (workspacePath) {
+    sections.push(
+      `## Workspace\n\nFor workspace context (sibling repos, cross-repo knowledge), see ${workspacePath}`
+    );
   }
 
   return sections.join("\n\n") + "\n";
 }
 
-async function loadWorkspaceContext(repoRoot: string): Promise<string> {
+async function findWorkspaceContext(repoRoot: string): Promise<string> {
   // Check for workspace.md symlink in .ai/ (created by ai init --workspace)
   const localWorkspace = join(repoRoot, ".ai", "workspace.md");
   try {
-    const content = await readFile(localWorkspace, "utf-8");
-    return content.trim();
+    await readFile(localWorkspace, "utf-8");
+    return localWorkspace;
   } catch {
     // No workspace context, that's fine
   }
 
-  // Also check parent directory for workspace.md
-  const parentWorkspace = join(dirname(repoRoot), ".ai", "workspace.md");
+  // Also check parent directory for context.md
+  const parentContext = join(dirname(repoRoot), ".ai", "context.md");
   try {
-    const content = await readFile(parentWorkspace, "utf-8");
-    return content.trim();
+    await readFile(parentContext, "utf-8");
+    return parentContext;
   } catch {
     return "";
   }
