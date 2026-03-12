@@ -2,27 +2,25 @@
 
 ## Available Agents
 
-Located in `~/.claude/agents/`:
+Located in `~/.ai-agents/agents/`:
 
 | Agent | Purpose | When to Use |
 |-------|---------|-------------|
-| planner | Implementation planning | Complex features, refactoring |
-| architect | System design | Architectural decisions |
-| tdd-guide | Test-driven development | New features, bug fixes |
-| code-reviewer | Code review | After writing code |
-| security-reviewer | Security analysis | Before commits |
-| build-error-resolver | Fix build errors | When build fails |
-| e2e-runner | E2E testing | Critical user flows |
-| refactor-cleaner | Dead code cleanup | Code maintenance |
-| doc-updater | Documentation | Updating docs |
+| engineering-manager | Orchestrate multi-step tasks | Compound requests, system-level features |
+| feature-agent | Implementation planning | New features, architectural changes |
+| debug-agent | Root cause diagnosis | Bug fixes, errors, failures |
+| test-agent | Test-driven development | New features, bug fixes |
+| review-agent | Code review + security | After writing code, before commits |
+| refactor-agent | Dead code cleanup | Code maintenance, consolidation |
 
 ## Immediate Agent Usage
 
 No user prompt needed:
-1. Complex feature requests - Use **planner** agent
-2. Code just written/modified - Use **code-reviewer** agent
-3. Bug fix or new feature - Use **tdd-guide** agent
-4. Architectural decision - Use **architect** agent
+1. Complex multi-step requests — Use **engineering-manager**
+2. New feature or architectural change — Use **feature-agent**
+3. Code just written/modified — Use **review-agent**
+4. Bug fix or error — Use **debug-agent**
+5. Writing tests — Use **test-agent**
 
 ## Parallel Task Execution
 
@@ -38,12 +36,3 @@ Launch 3 agents in parallel:
 # BAD: Sequential when unnecessary
 First agent 1, then agent 2, then agent 3
 ```
-
-## Multi-Perspective Analysis
-
-For complex problems, use split role sub-agents:
-- Factual reviewer
-- Senior engineer
-- Security expert
-- Consistency reviewer
-- Redundancy checker

@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ai-agents — Portable AI Agent System</title>
+  <meta name="description" content="One command to set up a full AI agent system across Claude Code, OpenCode, Cursor, Windsurf, Copilot, Cline, and Aider." />
+  <style>
+    :root {
+      --bg: #09090b;
+      --surface: #111113;
+      --surface-2: #1a1a1e;
+      --surface-3: #232328;
+      --border: #2a2a32;
+      --text: #e8e6e3;
+      --text-2: #9d9b97;
+      --text-3: #5c5a56;
+      --accent: #f59e0b;
+      --accent-dim: rgba(245, 158, 11, 0.1);
+      --green: #34d399;
+      --radius: 8px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Grain overlay ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 100;
+      opacity: 0.025;
+      background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { color: #fbbf24; }
+
+    code {
+      font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+      font-size: 0.88em;
+      background: var(--surface-2);
+      padding: 0.15em 0.4em;
+      border-radius: 4px;
+      color: var(--text-2);
+    }
+
+    /* ── Layout ── */
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 2rem;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      padding: 6rem 0 4rem;
+      text-align: center;
+      position: relative;
+    }
+
+    .hero::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 120px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border), transparent);
+    }
+
+    .hero-badge {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      background: var(--accent-dim);
+      border: 1px solid rgba(245, 158, 11, 0.2);
+      padding: 0.3rem 0.85rem;
+      border-radius: 20px;
+      margin-bottom: 1.5rem;
+    }
+
+    .hero h1 {
+      font-size: 3rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      margin-bottom: 1.25rem;
+    }
+
+    .hero h1 span { color: var(--accent); }
+
+    .hero p {
+      font-size: 1.15rem;
+      color: var(--text-2);
+      max-width: 580px;
+      margin: 0 auto 2.5rem;
+    }
+
+    /* ── Install block ── */
+    .install-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.5rem;
+      max-width: 620px;
+      margin: 0 auto 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+
+    .install-block:hover {
+      border-color: var(--accent);
+    }
+
+    .install-block code {
+      flex: 1;
+      background: none;
+      padding: 0;
+      font-size: 0.85rem;
+      color: var(--text);
+      white-space: nowrap;
+      overflow-x: auto;
+    }
+
+    .install-block .copy-hint {
+      font-size: 0.7rem;
+      color: var(--text-3);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .hero-sub {
+      font-size: 0.8rem;
+      color: var(--text-3);
+    }
+
+    /* ── Sections ── */
+    section {
+      padding: 4rem 0;
+      border-top: 1px solid var(--border);
+    }
+
+    section h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.5rem;
+    }
+
+    section .section-lead {
+      color: var(--text-2);
+      font-size: 0.95rem;
+      margin-bottom: 2.5rem;
+      max-width: 540px;
+    }
+
+    /* ── Feature grid ── */
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+    }
+
+    .feature {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      transition: border-color 0.15s, transform 0.15s;
+    }
+
+    .feature:hover {
+      border-color: var(--surface-3);
+      transform: translateY(-2px);
+    }
+
+    .feature-icon {
+      font-size: 1.25rem;
+      margin-bottom: 0.75rem;
+      display: block;
+    }
+
+    .feature h3 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 0.4rem;
+    }
+
+    .feature p {
+      font-size: 0.82rem;
+      color: var(--text-2);
+      line-height: 1.55;
+    }
+
+    /* ── Agent table ── */
+    .agent-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+
+    .agent-table th {
+      text-align: left;
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      padding: 0.6rem 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .agent-table td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid rgba(42, 42, 50, 0.5);
+      color: var(--text-2);
+    }
+
+    .agent-table td:first-child {
+      color: var(--text);
+      font-weight: 500;
+      font-family: 'SF Mono', monospace;
+      font-size: 0.82rem;
+    }
+
+    .agent-table tr:last-child td { border-bottom: none; }
+
+    .agent-table-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    /* ── CLI section ── */
+    .cli-demo {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .cli-bar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0.65rem 1rem;
+      background: var(--surface-2);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .cli-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--surface-3);
+    }
+
+    .cli-body {
+      padding: 1.25rem 1.5rem;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 0.82rem;
+      line-height: 1.8;
+      color: var(--text-2);
+      overflow-x: auto;
+    }
+
+    .cli-body .prompt { color: var(--green); }
+    .cli-body .cmd { color: var(--text); }
+    .cli-body .comment { color: var(--text-3); }
+    .cli-body .flag { color: var(--accent); }
+
+    /* ── Editor logos ── */
+    .editors {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+
+    .editor-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.78rem;
+      font-weight: 500;
+      padding: 0.4rem 0.85rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      color: var(--text-2);
+    }
+
+    /* ── How it works ── */
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .step {
+      position: relative;
+      padding-left: 2.5rem;
+    }
+
+    .step-num {
+      position: absolute;
+      left: 0;
+      top: 0.1rem;
+      width: 1.75rem;
+      height: 1.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--accent);
+      background: var(--accent-dim);
+      border: 1px solid rgba(245, 158, 11, 0.2);
+      border-radius: 50%;
+    }
+
+    .step h3 {
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 0.35rem;
+    }
+
+    .step p {
+      font-size: 0.82rem;
+      color: var(--text-2);
+      line-height: 1.55;
+    }
+
+    /* ── Architecture diagram ── */
+    .arch-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.75rem 2rem;
+      font-family: 'SF Mono', monospace;
+      font-size: 0.78rem;
+      line-height: 1.7;
+      color: var(--text-2);
+      overflow-x: auto;
+      white-space: pre;
+    }
+
+    .arch-block .path { color: var(--text); }
+    .arch-block .arrow { color: var(--text-3); }
+    .arch-block .target { color: var(--accent); }
+
+    /* ── Footer ── */
+    footer {
+      padding: 3rem 0;
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+
+    footer p {
+      font-size: 0.78rem;
+      color: var(--text-3);
+    }
+
+    footer a { color: var(--text-2); }
+
+    /* ── Responsive ── */
+    @media (max-width: 640px) {
+      .hero { padding: 4rem 0 3rem; }
+      .hero h1 { font-size: 2rem; }
+      .hero p { font-size: 1rem; }
+      .install-block { flex-direction: column; align-items: stretch; }
+      .install-block code { font-size: 0.75rem; }
+      section { padding: 3rem 0; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- Hero -->
+  <header class="hero">
+    <div class="hero-badge">Open Source</div>
+    <h1>Your AI editors,<br /><span>one agent system.</span></h1>
+    <p>
+      Portable agents, skills, and repo context that work across Claude Code,
+      Cursor, Windsurf, Copilot, and more. One install, every editor.
+    </p>
+
+    <div class="install-block" onclick="navigator.clipboard.writeText('curl -fsSL https://raw.githubusercontent.com/asambstack/ai-cli/main/install.sh | bash')">
+      <code>curl -fsSL https://raw.githubusercontent.com/asambstack/ai-cli/main/install.sh | bash</code>
+      <span class="copy-hint">click to copy</span>
+    </div>
+    <p class="hero-sub">Requires git and Node.js 18+. macOS and Linux.</p>
+  </header>
+
+  <!-- What you get -->
+  <section>
+    <h2>What you get</h2>
+    <p class="section-lead">A complete development environment that plugs into whatever AI editor you use.</p>
+
+    <div class="features">
+      <div class="feature">
+        <span class="feature-icon">&#9670;</span>
+        <h3>6 Specialized Agents</h3>
+        <p>Engineering manager, code reviewer, debugger, refactorer, feature planner, and TDD specialist. Auto-routed from natural language.</p>
+      </div>
+      <div class="feature">
+        <span class="feature-icon">&#9881;</span>
+        <h3>7 On-Demand Skills</h3>
+        <p>TDD workflow, security review, coding standards, design patterns, git workflow, and more. Loaded only when needed.</p>
+      </div>
+      <div class="feature">
+        <span class="feature-icon">&#9655;</span>
+        <h3>Slash Commands</h3>
+        <p><code>/review</code> <code>/debug</code> <code>/refactor</code> <code>/feature</code> <code>/write-tests</code> <code>/manager</code> in Claude Code and OpenCode.</p>
+      </div>
+      <div class="feature">
+        <span class="feature-icon">&#9636;</span>
+        <h3>Repo Context CLI</h3>
+        <p>Static analysis scans your project and generates context files for every editor. Zero LLM calls, zero cost.</p>
+      </div>
+      <div class="feature">
+        <span class="feature-icon">&#9783;</span>
+        <h3>Knowledge System</h3>
+        <p>Capture learnings per repo or across workspaces. Architecture decisions, conventions, gotchas — persisted as markdown.</p>
+      </div>
+      <div class="feature">
+        <span class="feature-icon">&#9707;</span>
+        <h3>Visual Dashboard</h3>
+        <p>Browser UI at <code>localhost:3141</code> for repo health, knowledge management, and agent config editing.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Agents -->
+  <section>
+    <h2>Agents</h2>
+    <p class="section-lead">Describe your task. The right agent is selected automatically.</p>
+
+    <div class="agent-table-wrap">
+      <table class="agent-table">
+        <thead>
+          <tr><th>Agent</th><th>Purpose</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>engineering-manager</td><td>Breaks compound tasks into steps, delegates to specialists, parallelizes independent work</td></tr>
+          <tr><td>review-agent</td><td>Security, quality, and correctness review on diffs</td></tr>
+          <tr><td>debug-agent</td><td>Root cause diagnosis and minimal fix</td></tr>
+          <tr><td>refactor-agent</td><td>Dead code removal, deduplication, safe consolidation</td></tr>
+          <tr><td>feature-agent</td><td>Phased implementation plan with dependency analysis</td></tr>
+          <tr><td>test-agent</td><td>TDD workflow — tests first, 80%+ coverage target</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- CLI -->
+  <section>
+    <h2>CLI</h2>
+    <p class="section-lead">Scan your repo. Generate context. Every AI editor reads it.</p>
+
+    <div class="cli-demo">
+      <div class="cli-bar">
+        <div class="cli-dot"></div>
+        <div class="cli-dot"></div>
+        <div class="cli-dot"></div>
+      </div>
+      <div class="cli-body">
+<span class="prompt">$</span> <span class="cmd">cd my-project</span>
+<span class="prompt">$</span> <span class="cmd">ai init</span>                          <span class="comment"># scan repo, pick editors</span>
+<span class="prompt">$</span> <span class="cmd">ai learn</span> <span class="flag">-c gotchas</span> <span class="cmd">"MySQL locks on bulk insert"</span>
+<span class="prompt">$</span> <span class="cmd">ai status</span>
+  <span class="comment">railsapp  ·  Ruby on Rails  ·  3 editors  ·  0 commits behind</span>
+<span class="prompt">$</span> <span class="cmd">ai dashboard</span>                      <span class="comment"># open browser UI</span>
+      </div>
+    </div>
+
+    <div class="editors">
+      <span class="editor-pill">Claude Code</span>
+      <span class="editor-pill">OpenCode</span>
+      <span class="editor-pill">Cursor</span>
+      <span class="editor-pill">Windsurf</span>
+      <span class="editor-pill">GitHub Copilot</span>
+      <span class="editor-pill">Cline</span>
+      <span class="editor-pill">Aider</span>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section>
+    <h2>How it works</h2>
+    <p class="section-lead">One source of truth, symlinked everywhere.</p>
+
+    <div class="steps">
+      <div class="step">
+        <span class="step-num">1</span>
+        <h3>Install</h3>
+        <p>One curl command clones the repo, builds the CLI and dashboard, and creates symlinks to every tool.</p>
+      </div>
+      <div class="step">
+        <span class="step-num">2</span>
+        <h3>Scan</h3>
+        <p><code>ai init</code> reads your project manifests, structure, and git history. Pure static analysis — no API calls.</p>
+      </div>
+      <div class="step">
+        <span class="step-num">3</span>
+        <h3>Generate</h3>
+        <p>Produces <code>.ai/context.md</code> with stack, structure, dependencies, and knowledge. Symlinked to each editor's context file.</p>
+      </div>
+      <div class="step">
+        <span class="step-num">4</span>
+        <h3>Work</h3>
+        <p>Open any AI editor. Agents, skills, and repo context are available immediately. Describe tasks in natural language.</p>
+      </div>
+    </div>
+
+    <div class="arch-block" style="margin-top: 2.5rem;">
+<span class="path">~/.ai-agents-repo/</span>
+    <span class="path">agents/*.md</span>    <span class="arrow">────→</span>  <span class="target">~/.ai-agents/agents/</span>
+    <span class="path">skills/*.md</span>    <span class="arrow">────→</span>  <span class="target">~/.ai-agents/skills/</span>
+    <span class="path">claude/commands/</span> <span class="arrow">──→</span>  <span class="target">~/.claude/commands/*.md</span>
+    <span class="path">claude/rules/</span>   <span class="arrow">───→</span>  <span class="target">~/.claude/rules/common/*.md</span>
+    <span class="path">opencode/</span>       <span class="arrow">───→</span>  <span class="target">~/.config/opencode/opencode.json</span>
+
+<span class="path">your-project/.ai/</span>
+    <span class="path">context.md</span>     <span class="arrow">────→</span>  <span class="target">CLAUDE.md, .cursorrules, .windsurfrules, ...</span>
+    <span class="path">learnings.md</span>          Knowledge persisted across refreshes
+    <span class="path">workspace.md</span>   <span class="arrow">────→</span>  <span class="target">../workspace/.ai/context.md</span>
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  <div class="container">
+    <p>
+      <a href="https://github.com/asambstack/ai-cli">GitHub</a>
+      &nbsp;&middot;&nbsp;
+      MIT License
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -22,7 +22,7 @@ For each removal candidate:
 - Start with SAFE items only
 - Order: dependencies -> exports -> files -> duplicates
 - Run tests after each batch
-- Commit after each batch
+- Do NOT commit automatically — present changes for user review
 
 ### 4. Consolidate Duplicates
 - Find duplicate implementations
