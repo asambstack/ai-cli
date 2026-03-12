@@ -1,4 +1,4 @@
-Load and follow ~/.ai-agents/agents/feature-agent.md
+Load and follow ~/.ai-agents-repo/agents/feature-agent.md
 
 Assume the role of feature planning specialist to create an implementation plan.
 

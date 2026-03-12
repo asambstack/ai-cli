@@ -17,9 +17,9 @@ When the user describes a task, automatically detect the intent and apply the co
 
 1. **Route to engineering-manager** when the request involves multiple steps, building a system or feature end-to-end, or explicitly asks for planning with execution. The manager delegates to agents — parallel for independent steps, sequential for dependent ones.
 2. **Route to a single agent** for focused, single-purpose requests (just review, just debug, just test).
-3. **Load only the matched agent** — read its definition from `~/.ai-agents/agents/<name>.md` and follow its instructions.
+3. **Load only the matched agent** — read its definition from `~/.ai-agents-repo/agents/<name>.md` and follow its instructions.
 4. **Do NOT load all agents** — this wastes tokens. The engineering-manager loads agents as needed during execution.
-5. **Skills are reference material** — load from `~/.ai-agents/skills/` only when the agent's task requires it (e.g., test-agent may load tdd-workflow skill).
+5. **Skills are reference material** — load from `~/.ai-agents-repo/skills/` only when the agent's task requires it (e.g., test-agent may load tdd-workflow skill).
 
 ## Skill Loading
 

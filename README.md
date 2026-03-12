@@ -73,14 +73,9 @@ The repository is the single source of truth. Symlinks connect it to each tool:
 
 ```
 ~/.ai-agents-repo/
-    agents/*.md ────────────┬──→ ~/.ai-agents/agents/
-    skills/*.md ────────────┼──→ ~/.ai-agents/skills/
-                            ├──→ ~/.ai-manager/agents/
-                            └──→ ~/.ai-manager/skills/
     claude/commands/*.md ─────→ ~/.claude/commands/*.md
     claude/rules/*.md ────────→ ~/.claude/rules/common/*.md
-    opencode/ ────────────┬───→ ~/.ai-agents/opencode/
-    opencode/opencode.json └──→ ~/.config/opencode/opencode.json
+    opencode/opencode.json ───→ ~/.config/opencode/opencode.json
 ```
 
 ### Context generation

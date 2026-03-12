@@ -5,7 +5,7 @@ description: Plan and delegate a multi-step task using the engineering manager a
 Launch the engineering manager to plan and execute this task.
 
 Instructions:
-1. Load and follow ~/.ai-agents/agents/engineering-manager.md
+1. Load and follow ~/.ai-agents-repo/agents/engineering-manager.md
 2. Analyze the request and create a short task plan (2-5 steps)
 3. Tag each step with the agent that should handle it
 4. Execute steps sequentially — load only one agent at a time

@@ -1,11 +1,11 @@
-import { mkdir, writeFile, readFile } from "node:fs/promises";
+import { mkdir, writeFile, readFile, access, appendFile } from "node:fs/promises";
 import { join } from "node:path";
 import chalk from "chalk";
 import prompts from "prompts";
 import { scanRepo, getHeadCommit } from "../scanner.js";
 import { generateContext } from "../generator.js";
 import { detectEditors, linkEditor } from "../editors.js";
-import { EDITORS, type AIConfig } from "../types.js";
+import { EDITORS, type AIConfig, type EditorDef } from "../types.js";
 
 interface InitOptions {
   readonly all?: boolean;
@@ -104,6 +104,102 @@ export async function init(root: string, options: InitOptions): Promise<void> {
     ].join("\n");
     await writeFile(learningsPath, learningsTemplate, "utf-8");
     console.log(`    .ai/learnings.md ${chalk.dim("— manual knowledge")}`);
+  }
+
+  // Create .claude/memory/ directory and scaffold memory files
+  const memoryDir = join(root, ".claude", "memory");
+  await mkdir(memoryDir, { recursive: true });
+
+  const memoryFiles: ReadonlyArray<{
+    readonly file: string;
+    readonly name: string;
+    readonly description: string;
+  }> = [
+    {
+      file: "MEMORY.md",
+      name: "Memory Index",
+      description: "Index of all memory files — keep concise, links only",
+    },
+    {
+      file: "repo-structure.md",
+      name: "Repository Structure",
+      description: "Top-level directory layout and key file locations",
+    },
+    {
+      file: "architecture.md",
+      name: "Architecture",
+      description: "Component architecture, data flow, and service relationships",
+    },
+    {
+      file: "patterns.md",
+      name: "Coding Patterns",
+      description: "Coding conventions and recurring patterns in this repo",
+    },
+    {
+      file: "gotchas.md",
+      name: "Gotchas",
+      description: "Known pitfalls, quirks, and non-obvious behavior",
+    },
+  ];
+
+  const createdMemoryFiles: string[] = [];
+  for (const mem of memoryFiles) {
+    const memPath = join(memoryDir, mem.file);
+    try {
+      await access(memPath);
+    } catch {
+      const content =
+        mem.file === "MEMORY.md"
+          ? `# Memory Index\n\n- [repo-structure.md](repo-structure.md) — Repository layout\n- [architecture.md](architecture.md) — Component architecture\n- [patterns.md](patterns.md) — Coding conventions\n- [gotchas.md](gotchas.md) — Known pitfalls\n`
+          : `---\nname: ${mem.name}\ndescription: ${mem.description}\ntype: project\n---\n`;
+      await writeFile(memPath, content, "utf-8");
+      createdMemoryFiles.push(mem.file);
+    }
+  }
+
+  if (createdMemoryFiles.length > 0) {
+    console.log(
+      `    .claude/memory/ ${chalk.dim(`— ${createdMemoryFiles.length} template(s): ${createdMemoryFiles.join(", ")}`)}`
+    );
+  }
+
+  // Add all ai init generated files to .gitignore
+  const gitignorePath = join(root, ".gitignore");
+
+  const editorPaths = selectedEditors
+    .map((id) => EDITORS.find((e) => e.id === id))
+    .filter((e): e is EditorDef => e !== undefined)
+    .map((e) => e.path);
+
+  const gitignoreEntries = [".ai/", ".claude/memory/", ...editorPaths];
+
+  let gitignoreContent = "";
+  try {
+    gitignoreContent = await readFile(gitignorePath, "utf-8");
+  } catch {
+    // .gitignore doesn't exist yet
+  }
+
+  const missingEntries = gitignoreEntries.filter(
+    (entry) => !gitignoreContent.includes(entry)
+  );
+
+  if (missingEntries.length > 0) {
+    const section = [
+      "",
+      "# AI Agent generated files (ai init)",
+      ...missingEntries,
+      "",
+    ].join("\n");
+
+    if (gitignoreContent) {
+      await appendFile(gitignorePath, section, "utf-8");
+    } else {
+      await writeFile(gitignorePath, section.trimStart(), "utf-8");
+    }
+    console.log(
+      `    .gitignore ${chalk.dim(`— added ${missingEntries.join(", ")}`)}`
+    );
   }
 
   // Save config

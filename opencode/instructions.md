@@ -13,7 +13,7 @@ When the user describes a task, automatically detect the intent and apply the co
 
 ## Rules
 
-1. When routing, **load and follow** the agent definition from `~/.ai-agents/agents/<name>.md` — assume its role, do not spawn a subagent.
+1. When routing, **load and follow** the agent definition from `~/.ai-agents-repo/agents/<name>.md` — assume its role, do not spawn a subagent.
 2. Route to **engineering-manager** for multi-step or compound tasks. It then loads other agents one at a time.
 3. Route to a **single agent** for focused, single-purpose requests.
 4. Load only the matched agent — do not load all agents at once.

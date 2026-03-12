@@ -1,4 +1,4 @@
-Load and follow ~/.ai-agents/agents/review-agent.md
+Load and follow ~/.ai-agents-repo/agents/review-agent.md
 
 Assume the role of code review specialist to review the current changes.
 

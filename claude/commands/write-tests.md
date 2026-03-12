@@ -5,7 +5,7 @@ description: Write tests using TDD methodology - tests first, then implementatio
 Launch a TDD agent to write tests for the specified code.
 
 Instructions:
-1. Load and follow the instructions in ~/.ai-agents/agents/test-agent.md
+1. Load and follow the instructions in ~/.ai-agents-repo/agents/test-agent.md
 2. Follow Red-Green-Refactor:
    - RED: Write a failing test first
    - GREEN: Write minimal code to pass

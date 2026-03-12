@@ -5,7 +5,7 @@ description: Plan a new feature with detailed implementation steps and phases
 Launch a feature planning agent to create an implementation plan.
 
 Instructions:
-1. Load and follow the instructions in ~/.ai-agents/agents/feature-agent.md
+1. Load and follow the instructions in ~/.ai-agents-repo/agents/feature-agent.md
 2. Analyze the codebase to understand existing architecture
 3. Create a phased implementation plan with:
    - Exact file paths and function names

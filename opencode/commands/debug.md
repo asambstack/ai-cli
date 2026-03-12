@@ -1,4 +1,4 @@
-Load and follow ~/.ai-agents/agents/debug-agent.md
+Load and follow ~/.ai-agents-repo/agents/debug-agent.md
 
 Assume the role of debugging specialist to diagnose and fix the issue.
 

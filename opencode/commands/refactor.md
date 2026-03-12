@@ -1,4 +1,4 @@
-Load and follow ~/.ai-agents/agents/refactor-agent.md
+Load and follow ~/.ai-agents-repo/agents/refactor-agent.md
 
 Assume the role of refactoring specialist to clean up the specified code.
 

@@ -1,4 +1,4 @@
-Load and follow ~/.ai-agents/agents/test-agent.md
+Load and follow ~/.ai-agents-repo/agents/test-agent.md
 
 Assume the role of TDD specialist to write tests for the specified code.
 

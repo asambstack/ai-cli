@@ -112,11 +112,9 @@ ok "Dashboard ready (run 'ai dashboard' to open)"
 echo ""
 info "Setting up symlinks..."
 
-mkdir -p "$HOME/.ai-agents"
 mkdir -p "$HOME/.claude/commands"
 mkdir -p "$HOME/.claude/rules/common"
 mkdir -p "$HOME/.config/opencode"
-mkdir -p "$HOME/.ai-manager"
 
 # ── Helper functions ──────────────────────────────────────────────────
 
@@ -167,12 +165,7 @@ cleanup_broken_links() {
 
 # ── 5. Agents, skills, editor integrations ───────────────────────────
 
-# Agents & skills
-backup_and_link "$REPO_DIR/agents" "$HOME/.ai-agents/agents"
-backup_and_link "$REPO_DIR/skills" "$HOME/.ai-agents/skills"
-
 # OpenCode
-backup_and_link "$REPO_DIR/opencode" "$HOME/.ai-agents/opencode"
 backup_and_link "$REPO_DIR/opencode/opencode.json" "$HOME/.config/opencode/opencode.json"
 
 # Claude Code commands & rules (per-file)
@@ -182,10 +175,6 @@ link_files "$REPO_DIR/claude/rules" "$HOME/.claude/rules/common" "*.md"
 # Clean up stale symlinks
 cleanup_broken_links "$HOME/.claude/commands"
 cleanup_broken_links "$HOME/.claude/rules/common"
-
-# ai-manager
-backup_and_link "$REPO_DIR/agents" "$HOME/.ai-manager/agents"
-backup_and_link "$REPO_DIR/skills" "$HOME/.ai-manager/skills"
 
 ok "Symlinks configured"
 
@@ -201,12 +190,7 @@ validate() {
     ERRORS=$((ERRORS + 1))
 }
 
-validate "$HOME/.ai-agents/agents"
-validate "$HOME/.ai-agents/skills"
-validate "$HOME/.ai-agents/opencode"
 validate "$HOME/.config/opencode/opencode.json"
-validate "$HOME/.ai-manager/agents"
-validate "$HOME/.ai-manager/skills"
 
 for f in "$HOME/.claude/commands"/*.md; do [ -L "$f" ] && validate "$f"; done
 for f in "$HOME/.claude/rules/common"/*.md; do [ -L "$f" ] && validate "$f"; done

@@ -5,7 +5,7 @@ description: Refactor code - dead code cleanup, deduplication, and safe consolid
 Launch a refactoring agent to clean up the specified code.
 
 Instructions:
-1. Load and follow the instructions in ~/.ai-agents/agents/refactor-agent.md
+1. Load and follow the instructions in ~/.ai-agents-repo/agents/refactor-agent.md
 2. Detect unused code, exports, and dependencies
 3. Categorize removals by risk: SAFE / CAREFUL / RISKY
 4. Remove SAFE items first, run tests after each batch

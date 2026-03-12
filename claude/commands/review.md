@@ -6,7 +6,7 @@ Launch a code review agent to review the current changes.
 
 Instructions:
 1. Use the Agent tool with subagent_type "Explore" or a general-purpose agent
-2. Load and follow the instructions in ~/.ai-agents/agents/review-agent.md
+2. Load and follow the instructions in ~/.ai-agents-repo/agents/review-agent.md
 3. Run `git diff --staged` and `git diff` to identify changed code
 4. Review ONLY changed code unless a CRITICAL security issue exists nearby
 5. Output findings by severity: CRITICAL > HIGH > MEDIUM > LOW

@@ -2,7 +2,7 @@
 
 ## Available Agents
 
-Located in `~/.ai-agents/agents/`:
+Located in `~/.ai-agents-repo/agents/`:
 
 | Agent | Purpose | When to Use |
 |-------|---------|-------------|

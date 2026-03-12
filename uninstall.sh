@@ -92,12 +92,7 @@ echo ""
 
 info "Removing directory symlinks..."
 
-safe_unlink "$HOME/.ai-agents/agents"
-safe_unlink "$HOME/.ai-agents/skills"
-safe_unlink "$HOME/.ai-agents/opencode"
 safe_unlink "$HOME/.config/opencode/opencode.json"
-safe_unlink "$HOME/.ai-manager/agents"
-safe_unlink "$HOME/.ai-manager/skills"
 
 info "Removing Claude command symlinks..."
 unlink_files "$HOME/.claude/commands" "*.md"
@@ -135,8 +130,6 @@ fi
 
 info "Cleaning up empty directories..."
 
-rmdir "$HOME/.ai-agents" 2>/dev/null && ok "Removed empty ~/.ai-agents" || true
-rmdir "$HOME/.ai-manager" 2>/dev/null && ok "Removed empty ~/.ai-manager" || true
 rmdir "$HOME/.claude/rules/common" 2>/dev/null || true
 rmdir "$HOME/.claude/rules" 2>/dev/null || true
 rmdir "$HOME/.claude/commands" 2>/dev/null || true

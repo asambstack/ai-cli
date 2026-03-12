@@ -4,7 +4,7 @@
   "small_model": "anthropic/claude-haiku-4-5",
   "default_agent": "build",
   "instructions": [
-    "~/.ai-agents/opencode/instructions.md"
+    "~/.ai-agents-repo/opencode/instructions.md"
   ],
   "agent": {
     "build": {
@@ -21,27 +21,27 @@
   "command": {
     "manager": {
       "description": "Plan and delegate a multi-step task using the engineering manager",
-      "template": "{file:~/.ai-agents/opencode/commands/manager.md}"
+      "template": "{file:~/.ai-agents-repo/opencode/commands/manager.md}"
     },
     "review": {
       "description": "Review code changes for security, quality, and correctness",
-      "template": "{file:~/.ai-agents/opencode/commands/review.md}"
+      "template": "{file:~/.ai-agents-repo/opencode/commands/review.md}"
     },
     "refactor": {
       "description": "Refactor code - dead code cleanup, deduplication, consolidation",
-      "template": "{file:~/.ai-agents/opencode/commands/refactor.md}"
+      "template": "{file:~/.ai-agents-repo/opencode/commands/refactor.md}"
     },
     "debug": {
       "description": "Debug and fix errors - build failures, runtime errors, type errors",
-      "template": "{file:~/.ai-agents/opencode/commands/debug.md}"
+      "template": "{file:~/.ai-agents-repo/opencode/commands/debug.md}"
     },
     "feature": {
       "description": "Plan a new feature with detailed implementation steps",
-      "template": "{file:~/.ai-agents/opencode/commands/feature.md}"
+      "template": "{file:~/.ai-agents-repo/opencode/commands/feature.md}"
     },
     "write-tests": {
       "description": "Write tests using TDD methodology",
-      "template": "{file:~/.ai-agents/opencode/commands/write-tests.md}"
+      "template": "{file:~/.ai-agents-repo/opencode/commands/write-tests.md}"
     }
   }
 }

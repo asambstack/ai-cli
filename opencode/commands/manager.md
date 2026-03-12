@@ -1,4 +1,4 @@
-Load and follow ~/.ai-agents/agents/engineering-manager.md
+Load and follow ~/.ai-agents-repo/agents/engineering-manager.md
 
 Assume the role of engineering manager to plan and execute this task.
 
