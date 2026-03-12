@@ -1,4 +1,6 @@
-Launch a code review agent to review the current changes.
+Load and follow ~/.ai-agents/agents/review-agent.md
+
+Assume the role of code review specialist to review the current changes.
 
 Instructions:
 1. Run `git diff --staged` and `git diff` to identify changed code

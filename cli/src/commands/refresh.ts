@@ -1,10 +1,81 @@
-import { readFile, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { readFile, writeFile, readdir, lstat, readlink, unlink, symlink } from "node:fs/promises";
+import { join, resolve } from "node:path";
+import { existsSync } from "node:fs";
+import { homedir } from "node:os";
 import chalk from "chalk";
 import { scanRepo, getHeadCommit, getCommitsSince } from "../scanner.js";
 import { generateContext } from "../generator.js";
 import { linkEditor } from "../editors.js";
 import type { AIConfig } from "../types.js";
+
+const REPO_DIR = resolve(homedir(), ".ai-agents-repo");
+
+interface SyncTarget {
+  sourceDir: string;
+  targetDir: string;
+  pattern: string;
+}
+
+async function syncGlobalSymlinks(): Promise<void> {
+  const targets: SyncTarget[] = [
+    {
+      sourceDir: join(REPO_DIR, "claude", "commands"),
+      targetDir: join(homedir(), ".claude", "commands"),
+      pattern: ".md",
+    },
+    {
+      sourceDir: join(REPO_DIR, "claude", "rules"),
+      targetDir: join(homedir(), ".claude", "rules", "common"),
+      pattern: ".md",
+    },
+  ];
+
+  let cleaned = 0;
+  let linked = 0;
+
+  for (const target of targets) {
+    if (!existsSync(target.targetDir)) continue;
+
+    const entries = await readdir(target.targetDir);
+
+    for (const entry of entries) {
+      const fullPath = join(target.targetDir, entry);
+      const stat = await lstat(fullPath);
+
+      if (!stat.isSymbolicLink()) continue;
+
+      const dest = await readlink(fullPath);
+      if (!dest.startsWith(REPO_DIR)) continue;
+
+      // Symlink points into our repo but target is gone — remove it
+      if (!existsSync(fullPath)) {
+        await unlink(fullPath);
+        console.log(`    ${chalk.yellow("⊘")} Removed broken: ${entry}`);
+        cleaned++;
+      }
+    }
+
+    // Add symlinks for new source files that aren't linked yet
+    if (existsSync(target.sourceDir)) {
+      const sourceFiles = await readdir(target.sourceDir);
+      for (const file of sourceFiles) {
+        if (!file.endsWith(target.pattern)) continue;
+        const targetPath = join(target.targetDir, file);
+        const sourcePath = join(target.sourceDir, file);
+
+        if (!existsSync(targetPath)) {
+          await symlink(sourcePath, targetPath);
+          console.log(`    ${chalk.green("+")} Linked new: ${file}`);
+          linked++;
+        }
+      }
+    }
+  }
+
+  if (cleaned === 0 && linked === 0) {
+    console.log(chalk.dim("    All global symlinks up to date."));
+  }
+}
 
 export async function refresh(root: string): Promise<void> {
   const configPath = join(root, ".ai", "config.json");
@@ -60,6 +131,11 @@ export async function refresh(root: string): Promise<void> {
       }
     }
   }
+
+  // Sync global symlinks (rules, commands)
+  console.log("");
+  console.log(chalk.blue("  Syncing global symlinks..."));
+  await syncGlobalSymlinks();
 
   // Update config
   const headCommit = getHeadCommit(root);

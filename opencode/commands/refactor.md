@@ -1,4 +1,6 @@
-Launch a refactoring agent to clean up the specified code.
+Load and follow ~/.ai-agents/agents/refactor-agent.md
+
+Assume the role of refactoring specialist to clean up the specified code.
 
 Instructions:
 1. Detect unused code, exports, and dependencies

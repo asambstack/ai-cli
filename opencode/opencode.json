@@ -10,123 +10,38 @@
     "build": {
       "description": "Primary coding agent for development work",
       "mode": "primary",
-      "model": "anthropic/claude-sonnet-4-5",
       "tools": {
         "write": true,
         "edit": true,
         "bash": true,
         "read": true
       }
-    },
-    "engineering-manager": {
-      "description": "Orchestrator for multi-step tasks. Plans and delegates to specialized agents sequentially.",
-      "mode": "subagent",
-      "model": "anthropic/claude-sonnet-4-5",
-      "prompt": "{file:~/.ai-agents/opencode/prompts/agents/engineering-manager.txt}",
-      "tools": {
-        "read": true,
-        "write": true,
-        "edit": true,
-        "bash": true
-      }
-    },
-    "review-agent": {
-      "description": "Code review specialist. Reviews changed code for security, quality, and correctness.",
-      "mode": "subagent",
-      "model": "anthropic/claude-sonnet-4-5",
-      "prompt": "{file:~/.ai-agents/opencode/prompts/agents/review-agent.txt}",
-      "tools": {
-        "read": true,
-        "bash": true,
-        "write": false,
-        "edit": false
-      }
-    },
-    "refactor-agent": {
-      "description": "Refactoring and dead code cleanup specialist. Detects unused code and consolidates safely.",
-      "mode": "subagent",
-      "model": "anthropic/claude-sonnet-4-5",
-      "prompt": "{file:~/.ai-agents/opencode/prompts/agents/refactor-agent.txt}",
-      "tools": {
-        "read": true,
-        "write": true,
-        "edit": true,
-        "bash": true
-      }
-    },
-    "debug-agent": {
-      "description": "Debugging and error resolution specialist. Diagnoses root causes and applies minimal fixes.",
-      "mode": "subagent",
-      "model": "anthropic/claude-sonnet-4-5",
-      "prompt": "{file:~/.ai-agents/opencode/prompts/agents/debug-agent.txt}",
-      "tools": {
-        "read": true,
-        "write": true,
-        "edit": true,
-        "bash": true
-      }
-    },
-    "feature-agent": {
-      "description": "Feature planning specialist. Creates phased implementation plans. Read-only analysis.",
-      "mode": "subagent",
-      "model": "anthropic/claude-opus-4-5",
-      "prompt": "{file:~/.ai-agents/opencode/prompts/agents/feature-agent.txt}",
-      "tools": {
-        "read": true,
-        "bash": true,
-        "write": false,
-        "edit": false
-      }
-    },
-    "test-agent": {
-      "description": "TDD specialist. Enforces write-tests-first methodology and 80%+ coverage.",
-      "mode": "subagent",
-      "model": "anthropic/claude-sonnet-4-5",
-      "prompt": "{file:~/.ai-agents/opencode/prompts/agents/test-agent.txt}",
-      "tools": {
-        "read": true,
-        "write": true,
-        "edit": true,
-        "bash": true
-      }
     }
   },
   "command": {
-    "manage": {
+    "manager": {
       "description": "Plan and delegate a multi-step task using the engineering manager",
-      "template": "{file:~/.ai-agents/opencode/commands/manage.md}",
-      "agent": "engineering-manager",
-      "subtask": true
+      "template": "{file:~/.ai-agents/opencode/commands/manager.md}"
     },
     "review": {
       "description": "Review code changes for security, quality, and correctness",
-      "template": "{file:~/.ai-agents/opencode/commands/review.md}",
-      "agent": "review-agent",
-      "subtask": true
+      "template": "{file:~/.ai-agents/opencode/commands/review.md}"
     },
     "refactor": {
       "description": "Refactor code - dead code cleanup, deduplication, consolidation",
-      "template": "{file:~/.ai-agents/opencode/commands/refactor.md}",
-      "agent": "refactor-agent",
-      "subtask": true
+      "template": "{file:~/.ai-agents/opencode/commands/refactor.md}"
     },
     "debug": {
       "description": "Debug and fix errors - build failures, runtime errors, type errors",
-      "template": "{file:~/.ai-agents/opencode/commands/debug.md}",
-      "agent": "debug-agent",
-      "subtask": true
+      "template": "{file:~/.ai-agents/opencode/commands/debug.md}"
     },
     "feature": {
       "description": "Plan a new feature with detailed implementation steps",
-      "template": "{file:~/.ai-agents/opencode/commands/feature.md}",
-      "agent": "feature-agent",
-      "subtask": true
+      "template": "{file:~/.ai-agents/opencode/commands/feature.md}"
     },
     "write-tests": {
       "description": "Write tests using TDD methodology",
-      "template": "{file:~/.ai-agents/opencode/commands/write-tests.md}",
-      "agent": "test-agent",
-      "subtask": true
+      "template": "{file:~/.ai-agents/opencode/commands/write-tests.md}"
     }
   }
 }

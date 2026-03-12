@@ -1,4 +1,6 @@
-Launch a TDD agent to write tests for the specified code.
+Load and follow ~/.ai-agents/agents/test-agent.md
+
+Assume the role of TDD specialist to write tests for the specified code.
 
 Instructions:
 1. Follow Red-Green-Refactor:

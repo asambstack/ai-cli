@@ -1,4 +1,4 @@
-# Common Patterns
+# Design Patterns
 
 ## Skeleton Projects
 
@@ -12,9 +12,7 @@ When implementing new functionality:
 3. Clone best match as foundation
 4. Iterate within proven structure
 
-## Design Patterns
-
-### Repository Pattern
+## Repository Pattern
 
 Encapsulate data access behind a consistent interface:
 - Define standard operations: findAll, findById, create, update, delete
@@ -22,7 +20,7 @@ Encapsulate data access behind a consistent interface:
 - Business logic depends on the abstract interface, not the storage mechanism
 - Enables easy swapping of data sources and simplifies testing with mocks
 
-### API Response Format
+## API Response Format
 
 Use a consistent envelope for all API responses:
 - Include a success/status indicator

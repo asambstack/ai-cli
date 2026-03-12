@@ -65,6 +65,25 @@ echo "  ==================="
 echo "  repo: $REPO_DIR"
 echo ""
 
+# Clean up broken symlinks in a directory that point into this repo.
+cleanup_broken_links() {
+    local target_dir="$1"
+    [ -d "$target_dir" ] || return
+    for link in "$target_dir"/*; do
+        [ -L "$link" ] || continue
+        if ! [ -e "$link" ]; then
+            local dest
+            dest="$(readlink "$link")"
+            case "$dest" in
+                "$REPO_DIR"*)
+                    rm "$link"
+                    warn "Removed broken symlink: $link -> $dest"
+                    ;;
+            esac
+        fi
+    done
+}
+
 # ── 1. Create target directories ──────────────────────────────────────
 
 info "Creating directories..."
@@ -102,6 +121,13 @@ link_files "$REPO_DIR/claude/commands" "$HOME/.claude/commands" "*.md"
 info "Linking Claude rules..."
 
 link_files "$REPO_DIR/claude/rules" "$HOME/.claude/rules/common" "*.md"
+
+# ── 5b. Clean up broken symlinks ───────────────────────────────────────
+
+info "Cleaning up broken symlinks..."
+
+cleanup_broken_links "$HOME/.claude/commands"
+cleanup_broken_links "$HOME/.claude/rules/common"
 
 # ── 6. ai-manager integration (directory symlinks) ───────────────────
 

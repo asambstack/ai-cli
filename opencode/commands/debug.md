@@ -1,4 +1,6 @@
-Launch a debugging agent to diagnose and fix the issue.
+Load and follow ~/.ai-agents/agents/debug-agent.md
+
+Assume the role of debugging specialist to diagnose and fix the issue.
 
 Instructions:
 1. Reproduce the error — run the failing command/test

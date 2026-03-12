@@ -1,4 +1,6 @@
-Launch a feature planning agent to create an implementation plan.
+Load and follow ~/.ai-agents/agents/feature-agent.md
+
+Assume the role of feature planning specialist to create an implementation plan.
 
 Instructions:
 1. Analyze the codebase to understand existing architecture

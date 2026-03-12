@@ -6,16 +6,16 @@ Portable AI agent environment for Claude Code, OpenCode, Cursor, and other AI ed
 
 **6 specialized agents** that handle different development tasks:
 
-| Agent | Purpose | Model |
-|-------|---------|-------|
-| engineering-manager | Orchestrates multi-step tasks by delegating to other agents | Sonnet |
-| review-agent | Code review for security, quality, and correctness | Sonnet |
-| refactor-agent | Dead code cleanup, deduplication, safe consolidation | Sonnet |
-| debug-agent | Root cause diagnosis and minimal fixes | Sonnet |
-| feature-agent | Feature planning with phased implementation steps | Opus |
-| test-agent | TDD specialist — write tests first, 80%+ coverage | Sonnet |
+| Agent | Purpose |
+|-------|---------|
+| engineering-manager | Orchestrates multi-step tasks, parallelizes independent steps, delegates to agents |
+| review-agent | Code review for security, quality, and correctness |
+| refactor-agent | Dead code cleanup, deduplication, safe consolidation |
+| debug-agent | Root cause diagnosis and minimal fixes |
+| feature-agent | Feature planning with phased implementation steps |
+| test-agent | TDD specialist — write tests first, 80%+ coverage |
 
-**4 reusable skills** loaded on demand by agents:
+**7 reusable skills** loaded on demand by agents:
 
 | Skill | Used by |
 |-------|---------|
@@ -23,6 +23,9 @@ Portable AI agent environment for Claude Code, OpenCode, Cursor, and other AI ed
 | security-review | review-agent when security concerns found |
 | coding-standards | review-agent, refactor-agent for style reference |
 | search-first | feature-agent during planning phase |
+| git-workflow | any agent during commit or PR operations |
+| design-patterns | feature-agent when architectural patterns needed |
+| hooks-guide | any agent configuring hooks or using TodoWrite |
 
 **Auto-routing** — describe your task in natural language and the correct agent is selected automatically. No slash command required.
 
@@ -34,10 +37,10 @@ Portable AI agent environment for Claude Code, OpenCode, Cursor, and other AI ed
 /refactor     — clean up and consolidate code
 /feature      — plan a new feature
 /write-tests  — write tests using TDD
-/manage       — orchestrate a multi-step task
+/manager      — orchestrate a multi-step task
 ```
 
-**10 global rules** for Claude Code covering coding style, security, testing, git workflow, performance, and more.
+**7 global rules** for Claude Code covering coding style, security, testing, performance, and more. 3 former rules (git-workflow, patterns, hooks) moved to on-demand skills to reduce context window usage.
 
 **`ai` CLI** for per-repo context management:
 
@@ -165,9 +168,10 @@ Agents follow a delegation model:
 
 1. **engineering-manager** receives compound tasks and creates a 2-5 step plan
 2. Each step is tagged with a specialist agent (debug, feature, test, refactor, review)
-3. Agents execute sequentially — only one loaded at a time
-4. Skills are loaded on demand when an agent needs reference material
-5. Every non-trivial change ends with review-agent
+3. Independent steps execute in parallel via subagents; dependent steps run sequentially
+4. Checkpoint after parallel joins — verify all branches succeeded before moving on
+5. Skills are loaded on demand when an agent needs reference material
+6. Every non-trivial change ends with review-agent
 
 For single-purpose requests (just review, just debug), the routing system dispatches directly to the appropriate agent without going through the manager.
 
@@ -184,6 +188,9 @@ ai-agents/
 │   └── test-agent.md
 ├── skills/                     # Reusable methodology guides
 │   ├── coding-standards.md
+│   ├── design-patterns.md
+│   ├── git-workflow.md
+│   ├── hooks-guide.md
 │   ├── search-first.md
 │   ├── security-review.md
 │   └── tdd-workflow.md
@@ -191,18 +198,15 @@ ai-agents/
 │   ├── commands/               # Claude Code slash commands
 │   │   ├── debug.md
 │   │   ├── feature.md
-│   │   ├── manage.md
+│   │   ├── manager.md
 │   │   ├── refactor.md
 │   │   ├── review.md
 │   │   └── write-tests.md
-│   └── rules/                  # Claude Code global rules
+│   └── rules/                  # Claude Code global rules (7 always-on)
 │       ├── agent-routing.md
 │       ├── agents.md
 │       ├── coding-style.md
 │       ├── development-workflow.md
-│       ├── git-workflow.md
-│       ├── hooks.md
-│       ├── patterns.md
 │       ├── performance.md
 │       ├── security.md
 │       └── testing.md
