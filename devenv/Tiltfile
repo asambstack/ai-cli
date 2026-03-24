@@ -1,146 +1,176 @@
 # ═══════════════════════════════════════════════════════════════
 # Automate E2E — Local Development Environment
 # Source: ~/.ai-agents-repo/devenv/Tiltfile
-# Symlinked to: ~/development/Tiltfile
+# Config: ~/.ai-agents-repo/devenv/config.yaml
 # Run: cd ~/development && tilt up
 # UI:  http://localhost:10350
 # ═══════════════════════════════════════════════════════════════
 
-DEV = '/Users/aditya/development'
-DEVENV = os.environ.get('HOME', '/Users/aditya') + '/.ai-agents-repo/devenv'
-NVM_DIR = '/Users/aditya/.nvm/versions/node'
-KAFKA_HOME = DEV + '/kafka/kafka_2.12-2.7.0'
+DEVENV = os.environ.get('HOME', '') + '/.ai-agents-repo/devenv'
 
-# ─── Path helpers per Node version ────────────────────────────
+# Allow local-only usage regardless of k8s context
+allow_k8s_contexts(k8s_context())
+
+# ─── Load config ──────────────────────────────────────────────
+
+config_path = DEVENV + '/config.yaml'
+if not os.path.exists(config_path):
+  fail('''
+config.yaml not found at ''' + config_path + '''
+
+Run this to generate it:
+  bash ~/.ai-agents-repo/devenv/setup-config.sh
+
+Or copy the sample:
+  cp ~/.ai-agents-repo/devenv/config.yaml.sample ~/.ai-agents-repo/devenv/config.yaml
+''')
+
+cfg_raw = read_yaml(config_path)
+
+# Expand ~ in paths
+def expand(p):
+  if not p:
+    return ''
+  return str(p).replace('~', os.environ.get('HOME', ''))
+
+DEV = expand(cfg_raw.get('dev_dir', '~/development'))
+KAFKA_HOME = expand(cfg_raw.get('kafka_home', ''))
+ES_BIN = expand(cfg_raw.get('elasticsearch_bin', ''))
+NVM_DIR = expand(cfg_raw.get('nvm_dir', '~/.nvm/versions/node'))
+RVM_DIR = expand(cfg_raw.get('rvm_dir', '~/.rvm'))
+
+node_versions = cfg_raw.get('node_versions', {})
+NODE16_VER = str(node_versions.get('v16', 'v16.20.2'))
+NODE18_VER = str(node_versions.get('v18', 'v18.12.1'))
+NODE20_VER = str(node_versions.get('v20', 'v20.17.0'))
+NODE22_VER = str(node_versions.get('v22', 'v22.15.0'))
+
+RUBY_VER = str(cfg_raw.get('ruby_version', 'ruby-2.6.6'))
+RUBY_GEMSET = str(cfg_raw.get('ruby_gemset', 'rails602'))
+GIT_ORG = str(cfg_raw.get('git_org', 'browserstack'))
+
+pg = cfg_raw.get('postgres', {})
+PG_USER = str(pg.get('user', 'browserstack'))
+PG_PASS = str(pg.get('password', 'Password123'))
+PG_DB = str(pg.get('database', 'obs'))
+
+my = cfg_raw.get('mysql', {})
+MY_USER = str(my.get('user', 'root'))
+MY_PASS = str(my.get('password', 'Root@123'))
+MY_TESTHUB_DB = str(my.get('testhub_database', 'testhub_database'))
+
+es = cfg_raw.get('elasticsearch', {})
+ES_USER = str(es.get('user', 'elastic'))
+ES_PASS = str(es.get('password', 'random@123'))
+
+# ─── Path helpers ─────────────────────────────────────────────
 BASE_PATH = '/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin'
 
 def node_env(version):
   return {'PATH': NVM_DIR + '/' + version + '/bin:' + BASE_PATH}
 
-NODE16_ENV = node_env('v16.20.2')
-NODE18_ENV = node_env('v18.12.1')
-NODE20_ENV = node_env('v20.17.0')
-NODE22_ENV = node_env('v22.15.0')
+NODE16_ENV = node_env(NODE16_VER)
+NODE18_ENV = node_env(NODE18_VER)
+NODE20_ENV = node_env(NODE20_VER)
+NODE22_ENV = node_env(NODE22_VER)
 
-RVM_RAILS_BIN = '/Users/aditya/.rvm/gems/ruby-2.6.6@rails602/bin:/Users/aditya/.rvm/gems/ruby-2.6.6@global/bin:/Users/aditya/.rvm/rubies/ruby-2.6.6/bin:/Users/aditya/.rvm/bin'
+RVM_GEMS = RVM_DIR + '/gems/' + RUBY_VER + '@' + RUBY_GEMSET
+RVM_GLOBAL = RVM_DIR + '/gems/' + RUBY_VER + '@global'
+RVM_RUBY_BIN = RVM_DIR + '/rubies/' + RUBY_VER + '/bin'
+RVM_BIN = RVM_DIR + '/bin'
+
 RAILS_ENV = {
-  'PATH': RVM_RAILS_BIN + ':' + BASE_PATH,
-  'GEM_HOME': '/Users/aditya/.rvm/gems/ruby-2.6.6@rails602',
-  'GEM_PATH': '/Users/aditya/.rvm/gems/ruby-2.6.6@rails602:/Users/aditya/.rvm/gems/ruby-2.6.6@global',
+  'PATH': RVM_GEMS + '/bin:' + RVM_GLOBAL + '/bin:' + RVM_RUBY_BIN + ':' + RVM_BIN + ':' + BASE_PATH,
+  'GEM_HOME': RVM_GEMS,
+  'GEM_PATH': RVM_GEMS + ':' + RVM_GLOBAL,
   'RAILS_ENV': 'development',
 }
 
 def copy_if_missing(src, dst):
   return 'test -f ' + dst + ' || cp ' + src + ' ' + dst
 
-# ─── Config ───────────────────────────────────────────────────
+# ─── Profile config ──────────────────────────────────────────
 config.define_string('profile', args=True)
-cfg = config.parse()
-profile = cfg.get('profile', 'full')
+profile_cfg = config.parse()
+profile = profile_cfg.get('profile', 'full')
 
 # ═══════════════════════════════════════════════════════════════
 # SETUP — Manual triggers for first-time repo setup
 # ═══════════════════════════════════════════════════════════════
 
+REPOS = [
+  'railsapp', 'seleniumhub', 'browserstack-fe', 'pusher',
+  'ws-reconnect-proxy', 'terminal-service', 'observability-pipeline',
+  'observability-api', 'testhub', 'misc-services', 'frontend',
+]
+
+for repo in REPOS:
+  repo_path = DEV + '/' + repo
+  local_resource('repo-' + repo,
+    cmd='if [ ! -d "' + repo_path + '" ]; then echo "Cloning ' + repo + '..."; git clone git@github.com:' + GIT_ORG + '/' + repo + '.git ' + repo_path + '; else echo "' + repo + ' already exists"; fi',
+    labels=['setup'],
+    trigger_mode=TRIGGER_MODE_MANUAL,
+    auto_init=False,
+  )
+
 local_resource('setup-seleniumhub',
-  cmd='''
-    cd ''' + DEV + '''/seleniumhub &&
-    ''' + copy_if_missing('conf.json.sample', 'conf.json') + ''' &&
-    export PATH="''' + NVM_DIR + '''/v16.20.2/bin:$PATH" &&
-    npm install &&
-    echo "seleniumhub setup complete"
-  ''',
+  cmd='cd ' + DEV + '/seleniumhub && ' + copy_if_missing('conf.json.sample', 'conf.json') + ' && export PATH="' + NVM_DIR + '/' + NODE16_VER + '/bin:$PATH" && npm install && echo "seleniumhub setup complete"',
   labels=['setup'],
   trigger_mode=TRIGGER_MODE_MANUAL,
   auto_init=False,
 )
 
 local_resource('setup-pusher',
-  cmd='''
-    cd ''' + DEV + '''/pusher &&
-    ''' + copy_if_missing('conf.json.sample', 'conf.json') + ''' &&
-    export PATH="''' + NVM_DIR + '''/v20.17.0/bin:$PATH" &&
-    npm install &&
-    echo "pusher setup complete"
-  ''',
+  cmd='cd ' + DEV + '/pusher && ' + copy_if_missing('conf.json.sample', 'conf.json') + ' && export PATH="' + NVM_DIR + '/' + NODE20_VER + '/bin:$PATH" && npm install && echo "pusher setup complete"',
   labels=['setup'],
   trigger_mode=TRIGGER_MODE_MANUAL,
   auto_init=False,
 )
 
 local_resource('setup-ws-reconnect-proxy',
-  cmd='''
-    cd ''' + DEV + '''/ws-reconnect-proxy &&
-    ''' + copy_if_missing('lib/config/config.json.sample', 'lib/config/config.json') + ''' &&
-    export PATH="''' + NVM_DIR + '''/v16.20.2/bin:$PATH" &&
-    npm install &&
-    echo "ws-reconnect-proxy setup complete"
-  ''',
+  cmd='cd ' + DEV + '/ws-reconnect-proxy && ' + copy_if_missing('lib/config/config.json.sample', 'lib/config/config.json') + ' && export PATH="' + NVM_DIR + '/' + NODE16_VER + '/bin:$PATH" && npm install && echo "ws-reconnect-proxy setup complete"',
   labels=['setup'],
   trigger_mode=TRIGGER_MODE_MANUAL,
   auto_init=False,
 )
 
 local_resource('setup-terminal-service',
-  cmd='''
-    cd ''' + DEV + '''/terminal-service/cleanup &&
-    export PATH="''' + NVM_DIR + '''/v20.17.0/bin:$PATH" &&
-    npm install &&
-    echo "terminal-service setup complete"
-  ''',
+  cmd='cd ' + DEV + '/terminal-service/cleanup && export PATH="' + NVM_DIR + '/' + NODE20_VER + '/bin:$PATH" && npm install && echo "terminal-service setup complete"',
   labels=['setup'],
   trigger_mode=TRIGGER_MODE_MANUAL,
   auto_init=False,
 )
 
 local_resource('setup-testhub',
-  cmd='''
-    cd ''' + DEV + '''/testhub &&
-    bash scripts/macbook-setup/testhub_setup.sh
-  ''',
+  cmd='cd ' + DEV + '/testhub && bash scripts/macbook-setup/testhub_setup.sh',
   labels=['setup'],
   trigger_mode=TRIGGER_MODE_MANUAL,
   auto_init=False,
 )
 
 local_resource('setup-browserstack-fe',
-  cmd='''
-    cd ''' + DEV + '''/browserstack-fe &&
-    bash setup_fe.sh
-  ''',
+  cmd='cd ' + DEV + '/browserstack-fe && bash setup_fe.sh',
   labels=['setup'],
   trigger_mode=TRIGGER_MODE_MANUAL,
   auto_init=False,
 )
 
 local_resource('setup-o11y-pipeline',
-  cmd='''
-    cd ''' + DEV + '''/observability-pipeline &&
-    bash scripts/macbook-setup/TestObservability_setup.sh
-  ''',
+  cmd='cd ' + DEV + '/observability-pipeline && bash scripts/macbook-setup/TestObservability_setup.sh',
   labels=['setup'],
   trigger_mode=TRIGGER_MODE_MANUAL,
   auto_init=False,
 )
 
 local_resource('setup-o11y-api',
-  cmd='''
-    cd ''' + DEV + '''/observability-api &&
-    make dev_db_migrate &&
-    make dev_es_template &&
-    echo "o11y-api setup complete"
-  ''',
+  cmd='cd ' + DEV + '/observability-api && make dev_db_migrate && make dev_es_template && echo "o11y-api setup complete"',
   labels=['setup'],
   trigger_mode=TRIGGER_MODE_MANUAL,
   auto_init=False,
 )
 
 local_resource('setup-railsapp',
-  cmd='''
-    cd ''' + DEV + '''/railsapp &&
-    make copy_all_configs &&
-    echo "railsapp config copied"
-  ''',
+  cmd='cd ' + DEV + '/railsapp && make copy_all_configs && echo "railsapp config copied"',
   labels=['setup'],
   trigger_mode=TRIGGER_MODE_MANUAL,
   auto_init=False,
@@ -149,7 +179,7 @@ local_resource('setup-railsapp',
 local_resource('setup-frontend-o11y',
   cmd='''
     cd ''' + DEV + '''/frontend &&
-    export PATH="''' + NVM_DIR + '''/v22.15.0/bin:$PATH" &&
+    export PATH="''' + NVM_DIR + '/' + NODE22_VER + '''/bin:$PATH" &&
     if [ ! -f .npmrc ]; then
       echo "GitHub token required for private packages (write:packages scope)"
       read -p "Enter your GitHub token: " GITHUB_TOKEN
@@ -195,78 +225,56 @@ local_resource('build-o11y-api-jar',
 
 local_resource('redis',
   serve_cmd='while true; do sleep 3600; done',
-  readiness_probe=probe(
-    tcp_socket=tcp_socket_action(port=6379),
-    period_secs=5, timeout_secs=2),
+  readiness_probe=probe(tcp_socket=tcp_socket_action(port=6379), period_secs=5, timeout_secs=2),
   labels=['infra'],
 )
 
 local_resource('mysql',
   serve_cmd='while true; do sleep 3600; done',
-  readiness_probe=probe(
-    tcp_socket=tcp_socket_action(port=3306),
-    period_secs=5, timeout_secs=2),
+  readiness_probe=probe(tcp_socket=tcp_socket_action(port=3306), period_secs=5, timeout_secs=2),
   labels=['infra'],
 )
 
 local_resource('elasticsearch',
-  serve_cmd=DEV + '/elasticsearch/elasticsearch-6.8.18/bin/elasticsearch',
-  readiness_probe=probe(
-    http_get=http_get_action(port=9200, path='/_cluster/health'),
-    period_secs=10, timeout_secs=3, initial_delay_secs=15),
+  serve_cmd=ES_BIN,
+  readiness_probe=probe(http_get=http_get_action(port=9200, path='/_cluster/health'), period_secs=10, timeout_secs=3, initial_delay_secs=15),
   links=['http://localhost:9200'],
   labels=['infra'],
 )
 
 local_resource('postgresql',
   serve_cmd='while true; do sleep 3600; done',
-  readiness_probe=probe(
-    tcp_socket=tcp_socket_action(port=5432),
-    period_secs=5, timeout_secs=2),
+  readiness_probe=probe(tcp_socket=tcp_socket_action(port=5432), period_secs=5, timeout_secs=2),
   labels=['infra'],
 )
 
 local_resource('zookeeper',
   serve_cmd=KAFKA_HOME + '/bin/zookeeper-server-start.sh ' + KAFKA_HOME + '/config/zookeeper.properties',
-  readiness_probe=probe(
-    tcp_socket=tcp_socket_action(port=2181),
-    period_secs=5, timeout_secs=2, initial_delay_secs=5),
+  readiness_probe=probe(tcp_socket=tcp_socket_action(port=2181), period_secs=5, timeout_secs=2, initial_delay_secs=5),
   labels=['infra'],
 )
 
 local_resource('kafka',
   serve_cmd=KAFKA_HOME + '/bin/kafka-server-start.sh ' + KAFKA_HOME + '/config/server.properties',
-  readiness_probe=probe(
-    tcp_socket=tcp_socket_action(port=9092),
-    period_secs=5, timeout_secs=2, initial_delay_secs=10),
+  readiness_probe=probe(tcp_socket=tcp_socket_action(port=9092), period_secs=5, timeout_secs=2, initial_delay_secs=10),
   resource_deps=['zookeeper'],
   labels=['infra'],
 )
 
 local_resource('kafka-topics',
-  cmd='''
-    ''' + KAFKA_HOME + '''/bin/kafka-topics.sh --zookeeper localhost:2181 --create --if-not-exists --topic raw_logs --partitions 40 --replication-factor 1
-    ''' + KAFKA_HOME + '''/bin/kafka-topics.sh --zookeeper localhost:2181 --create --if-not-exists --topic exception_logs --partitions 40 --replication-factor 1
-    ''' + KAFKA_HOME + '''/bin/kafka-topics.sh --zookeeper localhost:2181 --create --if-not-exists --topic console_logs --partitions 40 --replication-factor 1
-    ''' + KAFKA_HOME + '''/bin/kafka-topics.sh --zookeeper localhost:2181 --create --if-not-exists --topic performance_logs --partitions 40 --replication-factor 1
-    ''' + KAFKA_HOME + '''/bin/kafka-topics.sh --zookeeper localhost:2181 --create --if-not-exists --topic raw_extended_duration_logs --partitions 40 --replication-factor 1
-    ''' + KAFKA_HOME + '''/bin/kafka-topics.sh --zookeeper localhost:2181 --create --if-not-exists --topic instrumentation_logs --partitions 40 --replication-factor 1
-    ''' + KAFKA_HOME + '''/bin/kafka-topics.sh --zookeeper localhost:2181 --create --if-not-exists --topic event-batch --partitions 10 --replication-factor 1
-    ''' + KAFKA_HOME + '''/bin/kafka-topics.sh --zookeeper localhost:2181 --create --if-not-exists --topic event-processor --partitions 10 --replication-factor 1
-    ''' + KAFKA_HOME + '''/bin/kafka-topics.sh --zookeeper localhost:2181 --create --if-not-exists --topic checks-evaluation --partitions 10 --replication-factor 1
-    ''' + KAFKA_HOME + '''/bin/kafka-topics.sh --zookeeper localhost:2181 --create --if-not-exists --topic log-event-batch --partitions 10 --replication-factor 1
-    ''' + KAFKA_HOME + '''/bin/kafka-topics.sh --zookeeper localhost:2181 --create --if-not-exists --topic history-analyzer --partitions 10 --replication-factor 1
-    ''' + KAFKA_HOME + '''/bin/kafka-topics.sh --zookeeper localhost:2181 --create --if-not-exists --topic bulk-update --partitions 10 --replication-factor 1
-    ''' + KAFKA_HOME + '''/bin/kafka-topics.sh --zookeeper localhost:2181 --create --if-not-exists --topic webhook --partitions 10 --replication-factor 1
-    ''' + KAFKA_HOME + '''/bin/kafka-topics.sh --zookeeper localhost:2181 --create --if-not-exists --topic quality-gates --partitions 10 --replication-factor 1
-    ''' + KAFKA_HOME + '''/bin/kafka-topics.sh --zookeeper localhost:2181 --create --if-not-exists --topic testhub.sync-btcer-import-job --partitions 40 --replication-factor 1
-    ''' + KAFKA_HOME + '''/bin/kafka-topics.sh --zookeeper localhost:2181 --create --if-not-exists --topic testhub.builds-archival --partitions 20 --replication-factor 1
-    ''' + KAFKA_HOME + '''/bin/kafka-topics.sh --zookeeper localhost:2181 --create --if-not-exists --topic testhub.builds-purge --partitions 20 --replication-factor 1
-    ''' + KAFKA_HOME + '''/bin/kafka-topics.sh --zookeeper localhost:2181 --create --if-not-exists --topic testhub.generic-worker --partitions 20 --replication-factor 1
-    ''' + KAFKA_HOME + '''/bin/kafka-topics.sh --zookeeper localhost:2181 --create --if-not-exists --topic testhub.history-worker --partitions 20 --replication-factor 1
-    ''' + KAFKA_HOME + '''/bin/kafka-topics.sh --zookeeper localhost:2181 --create --if-not-exists --topic notification_preferences --partitions 2 --replication-factor 1
-    echo "All topics created"
-  ''',
+  cmd='\n'.join([
+    KAFKA_HOME + '/bin/kafka-topics.sh --zookeeper localhost:2181 --create --if-not-exists --topic ' + t + ' --partitions ' + str(p) + ' --replication-factor 1'
+    for t, p in [
+      ('raw_logs', 40), ('exception_logs', 40), ('console_logs', 40), ('performance_logs', 40),
+      ('raw_extended_duration_logs', 40), ('instrumentation_logs', 40),
+      ('event-batch', 10), ('event-processor', 10), ('checks-evaluation', 10),
+      ('log-event-batch', 10), ('history-analyzer', 10), ('bulk-update', 10),
+      ('webhook', 10), ('quality-gates', 10),
+      ('testhub.sync-btcer-import-job', 40), ('testhub.builds-archival', 20),
+      ('testhub.builds-purge', 20), ('testhub.generic-worker', 20),
+      ('testhub.history-worker', 20), ('notification_preferences', 2),
+    ]
+  ] + ['echo "All topics created"']),
   resource_deps=['kafka'],
   labels=['infra'],
 )
@@ -277,9 +285,7 @@ local_resource('kafka-topics',
 
 local_resource('railsapp',
   serve_cmd='while true; do sleep 3600; done',
-  readiness_probe=probe(
-    tcp_socket=tcp_socket_action(port=443, host='local.bsstag.com'),
-    period_secs=10, timeout_secs=3),
+  readiness_probe=probe(tcp_socket=tcp_socket_action(port=443, host='local.bsstag.com'), period_secs=10, timeout_secs=3),
   resource_deps=['mysql', 'redis'],
   links=['https://local.bsstag.com'],
   labels=['core'],
@@ -290,9 +296,7 @@ local_resource('seleniumhub',
   serve_cmd='node hub.js',
   serve_dir=DEV + '/seleniumhub',
   serve_env=NODE16_ENV,
-  readiness_probe=probe(
-    tcp_socket=tcp_socket_action(port=8080),
-    period_secs=5, timeout_secs=3, initial_delay_secs=5),
+  readiness_probe=probe(tcp_socket=tcp_socket_action(port=8080), period_secs=5, timeout_secs=3, initial_delay_secs=5),
   resource_deps=['redis', 'kafka', 'railsapp'],
   links=['http://localhost:8080'],
   labels=['core'],
@@ -327,9 +331,7 @@ local_resource('ws-reconnect-proxy',
   serve_cmd='node cluster.js',
   serve_dir=DEV + '/ws-reconnect-proxy',
   serve_env=NODE16_ENV,
-  readiness_probe=probe(
-    tcp_socket=tcp_socket_action(port=9222),
-    period_secs=5, timeout_secs=2, initial_delay_secs=3),
+  readiness_probe=probe(tcp_socket=tcp_socket_action(port=9222), period_secs=5, timeout_secs=2, initial_delay_secs=3),
   resource_deps=['seleniumhub'],
   labels=['core'],
 )
@@ -347,9 +349,7 @@ local_resource('pusher',
   serve_cmd='node server.js',
   serve_dir=DEV + '/pusher',
   serve_env=NODE20_ENV,
-  readiness_probe=probe(
-    tcp_socket=tcp_socket_action(port=8000),
-    period_secs=5, timeout_secs=2, initial_delay_secs=3),
+  readiness_probe=probe(tcp_socket=tcp_socket_action(port=8000), period_secs=5, timeout_secs=2, initial_delay_secs=3),
   resource_deps=['redis'],
   links=['http://localhost:8000'],
   labels=['core'],
@@ -371,9 +371,7 @@ local_resource('browserstack-fe',
   serve_cmd='NODE_OPTIONS=--openssl-legacy-provider yarn run dev',
   serve_dir=DEV + '/browserstack-fe',
   serve_env=NODE20_ENV,
-  readiness_probe=probe(
-    tcp_socket=tcp_socket_action(port=8081),
-    period_secs=10, timeout_secs=3, initial_delay_secs=15),
+  readiness_probe=probe(tcp_socket=tcp_socket_action(port=8081), period_secs=10, timeout_secs=3, initial_delay_secs=15),
   resource_deps=['railsapp'],
   links=['https://local.bsstag.com:8081'],
   labels=['dashboard'],
@@ -384,9 +382,7 @@ local_resource('frontend-o11y',
   serve_cmd='turbo run dev --filter o11y -- --port 8082',
   serve_dir=DEV + '/frontend',
   serve_env=NODE22_ENV,
-  readiness_probe=probe(
-    tcp_socket=tcp_socket_action(port=8082),
-    period_secs=10, timeout_secs=3, initial_delay_secs=20),
+  readiness_probe=probe(tcp_socket=tcp_socket_action(port=8082), period_secs=10, timeout_secs=3, initial_delay_secs=20),
   resource_deps=['railsapp'],
   links=['http://observability-local.bsstag.com:8082'],
   labels=['dashboard'],
@@ -397,43 +393,40 @@ local_resource('frontend-o11y',
 # ═══════════════════════════════════════════════════════════════
 
 if profile in ['full', 'o11y']:
+  # Generate docker-compose with correct paths
+  local('bash ' + DEVENV + '/generate-compose.sh')
   local('docker rm -f tilt-o11y-ingest tilt-o11y-consumer tilt-o11y-logproxy tilt-o11y-preprocessor tilt-o11y-api tilt-context-generator tilt-llm-service 2>/dev/null || true')
-  docker_compose(DEVENV + '/docker-compose.yml', project_name='devenv')
+  docker_compose(DEVENV + '/docker-compose.generated.yml', project_name='devenv')
 
   dc_resource('o11y-ingest',
     labels=['o11y'],
     resource_deps=['kafka', 'postgresql', 'elasticsearch'],
-    trigger_mode=TRIGGER_MODE_MANUAL,
-    auto_init=False,
+    trigger_mode=TRIGGER_MODE_MANUAL, auto_init=False,
   )
 
   dc_resource('o11y-consumer',
     labels=['o11y'],
     resource_deps=['kafka', 'postgresql', 'elasticsearch'],
-    trigger_mode=TRIGGER_MODE_MANUAL,
-    auto_init=False,
+    trigger_mode=TRIGGER_MODE_MANUAL, auto_init=False,
   )
 
   dc_resource('o11y-logproxy',
     labels=['o11y'],
     resource_deps=['kafka', 'postgresql', 'elasticsearch'],
-    trigger_mode=TRIGGER_MODE_MANUAL,
-    auto_init=False,
+    trigger_mode=TRIGGER_MODE_MANUAL, auto_init=False,
   )
 
   dc_resource('o11y-preprocessor',
     labels=['o11y'],
     resource_deps=['kafka', 'postgresql', 'elasticsearch'],
-    trigger_mode=TRIGGER_MODE_MANUAL,
-    auto_init=False,
+    trigger_mode=TRIGGER_MODE_MANUAL, auto_init=False,
   )
 
   dc_resource('o11y-api',
     labels=['o11y'],
     resource_deps=['postgresql', 'elasticsearch', 'redis'],
     links=['http://localhost:8085'],
-    trigger_mode=TRIGGER_MODE_MANUAL,
-    auto_init=False,
+    trigger_mode=TRIGGER_MODE_MANUAL, auto_init=False,
   )
 
 # ═══════════════════════════════════════════════════════════════
@@ -445,9 +438,7 @@ if profile in ['full', 'testhub']:
     serve_cmd='BUILD_ENV=development node ./bin/www',
     serve_dir=DEV + '/testhub',
     serve_env=NODE18_ENV,
-    readiness_probe=probe(
-      http_get=http_get_action(port=3000, path='/health'),
-      period_secs=10, timeout_secs=3, initial_delay_secs=10),
+    readiness_probe=probe(http_get=http_get_action(port=3000, path='/health'), period_secs=10, timeout_secs=3, initial_delay_secs=10),
     resource_deps=['mysql', 'redis', 'kafka'],
     links=['http://localhost:3000'],
     labels=['testhub'],
@@ -459,18 +450,17 @@ if profile in ['full', 'testhub']:
 
 if profile in ['full', 'tcg']:
   if profile not in ['o11y']:
+    local('bash ' + DEVENV + '/generate-compose.sh')
     local('docker rm -f tilt-context-generator tilt-llm-service 2>/dev/null || true')
-    docker_compose(DEVENV + '/docker-compose.yml', project_name='devenv')
+    docker_compose(DEVENV + '/docker-compose.generated.yml', project_name='devenv')
 
   dc_resource('context-generator',
     labels=['misc'],
     links=['http://localhost:3005'],
-    trigger_mode=TRIGGER_MODE_MANUAL,
-    auto_init=False,
+    trigger_mode=TRIGGER_MODE_MANUAL, auto_init=False,
   )
 
   dc_resource('llm-service',
     labels=['misc'],
-    trigger_mode=TRIGGER_MODE_MANUAL,
-    auto_init=False,
+    trigger_mode=TRIGGER_MODE_MANUAL, auto_init=False,
   )

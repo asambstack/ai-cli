@@ -1,0 +1,46 @@
+# ═══════════════════════════════════════════════════════════════
+# Dev Environment Configuration
+# Copy to config.yaml and adjust paths for your machine:
+#   cp config.yaml.sample config.yaml
+# Or run: bash setup-config.sh
+# ═══════════════════════════════════════════════════════════════
+
+# Root directory containing all repos
+dev_dir: ~/development
+
+# Kafka installation
+kafka_home: ~/development/kafka/kafka_2.12-2.7.0
+
+# Elasticsearch installation
+elasticsearch_bin: ~/development/elasticsearch/elasticsearch-6.8.18/bin/elasticsearch
+
+# ─── Node.js (nvm) ───────────────────────────────────────────
+nvm_dir: ~/.nvm/versions/node
+node_versions:
+  v16: v16.20.2    # seleniumhub, ws-reconnect-proxy
+  v18: v18.12.1    # testhub
+  v20: v20.17.0    # pusher, terminal-cleanup, browserstack-fe
+  v22: v22.15.0    # frontend-o11y
+
+# ─── Ruby (rvm) ──────────────────────────────────────────────
+rvm_dir: ~/.rvm
+ruby_version: ruby-2.6.6
+ruby_gemset: rails602
+
+# ─── Database credentials ────────────────────────────────────
+postgres:
+  user: browserstack
+  password: Password123
+  database: obs
+
+mysql:
+  user: root
+  password: Root@123
+  testhub_database: testhub_database
+
+elasticsearch:
+  user: elastic
+  password: random@123
+
+# ─── Git remotes (for repo cloning) ──────────────────────────
+git_org: browserstack

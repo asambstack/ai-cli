@@ -10,3 +10,5 @@ CLAUDE.md
 .clinerules
 CONVENTIONS.md
 .github/copilot-instructions.md
+devenv/config.yaml
+devenv/docker-compose.generated.yml

@@ -3,7 +3,7 @@ set -euo pipefail
 
 # ═══════════════════════════════════════════════════════════════
 # Bootstrap — One-time machine setup for Automate E2E
-# Run: bash ~/development/local-setup/scripts/bootstrap.sh
+# Run: bash ~/.ai-agents-repo/devenv/bootstrap.sh
 # Requires: sudo access, GitHub SSH key configured
 # ═══════════════════════════════════════════════════════════════
 
@@ -197,9 +197,24 @@ else
   warn "Install manually: rvm use 2.6.6@rails602 && gem install passenger && passenger-install-nginx-module"
 fi
 
-# ─── Create development directory structure ──────────────────
+# ─── Create development directory ─────────────────────────────
 
-mkdir -p "$DEV/local-setup/logs"
+mkdir -p "$DEV"
+
+# ─── Generate config.yaml ────────────────────────────────────
+
+DEVENV_DIR="$(cd "$(dirname "$0")" && pwd)"
+if [ ! -f "$DEVENV_DIR/config.yaml" ]; then
+  log "Generating config.yaml..."
+  bash "$DEVENV_DIR/setup-config.sh"
+else
+  ok "config.yaml already exists"
+fi
+
+# ─── Create Tiltfile symlink ─────────────────────────────────
+
+ln -sf "$DEVENV_DIR/Tiltfile" "$DEV/Tiltfile"
+ok "Tiltfile symlinked to $DEV/Tiltfile"
 
 # ─── Summary ─────────────────────────────────────────────────
 
