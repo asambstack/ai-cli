@@ -27,9 +27,9 @@ Six specialized agents that handle different development tasks. Describe your ta
 
 ### Skills
 
-Seven methodology guides loaded on demand when agents need them:
+Eight methodology guides loaded on demand when agents need them:
 
-`tdd-workflow` `security-review` `coding-standards` `search-first` `git-workflow` `design-patterns` `hooks-guide`
+`tdd-workflow` `security-review` `coding-standards` `search-first` `git-workflow` `design-patterns` `hooks-guide` `dev-environment`
 
 ### Slash commands
 
@@ -42,7 +42,7 @@ Available in Claude Code and OpenCode:
 
 ### Global rules
 
-Seven always-on rules for Claude Code: coding style, security, testing, performance, development workflow, agent routing, and agent orchestration.
+Seven always-on rules for Claude Code: coding style, security, testing, performance, development workflow, agent routing, and agent orchestration. Agent routing includes dev environment intents (Tilt management, service diagnostics, machine setup).
 
 ### `ai` CLI
 
@@ -113,11 +113,12 @@ For single-purpose requests, routing dispatches directly to the appropriate agen
 ### Learning categories
 
 ```
-architecture    system design, patterns, data flow
-conventions     naming, style, file organization
-gotchas         known issues, quirks, workarounds
-integrations    external services, APIs
-domain          business logic, key concepts
+architecture      system design, patterns, data flow
+conventions       naming, style, file organization
+gotchas           known issues, quirks, workarounds
+integrations      external services, APIs
+domain            business logic, key concepts
+dev-environment   local setup, Tilt, service config, troubleshooting
 ```
 
 ---
@@ -177,7 +178,13 @@ AI_AGENTS_REPO=git@github.com:myorg/ai-cli.git bash install.sh
 ```
 ai-agents/
 ├── agents/                 6 agent definitions (.md)
-├── skills/                 7 methodology guides (.md)
+├── skills/                 8 methodology guides (.md)
+├── devenv/                 Local dev environment orchestration
+│   ├── Tiltfile            Symlinked to ~/development/Tiltfile
+│   ├── bootstrap.sh        One-time machine prereqs (brew, rvm, nvm, DBs)
+│   ├── docker-compose.yml  O11Y + context-generator containers
+│   ├── dockerfiles/        Symlinked to ~/development/.ai-agents-repo-devenv
+│   └── config/             Testhub config overrides
 ├── claude/
 │   ├── commands/           6 slash commands
 │   └── rules/              7 global rules
@@ -199,6 +206,38 @@ ai-agents/
 ├── uninstall.sh            Clean removal
 └── README.md
 ```
+
+## Dev environment
+
+Tilt-based orchestration for the local automate E2E stack. Manages 20+ services across native processes, Docker containers, and external infrastructure.
+
+```bash
+# New machine — install prereqs
+bash ~/.ai-agents-repo/devenv/bootstrap.sh
+
+# Start services (UI at http://localhost:10350)
+cd ~/development && tilt up
+
+# First time — trigger repo setup from Tilt UI (setup label)
+# Then start railsapp: sudo /opt/nginx/sbin/nginx
+```
+
+The Tiltfile is symlinked from `devenv/` to `~/development/Tiltfile`. Dockerfiles are symlinked to `~/development/.ai-agents-repo-devenv`. Claude learns environment knowledge into the `dev-environment` skill and learning category.
+
+### Profiles
+
+| Profile | What starts |
+|---------|------------|
+| `full` (default) | Everything including o11y, testhub, context-generator |
+| `core` | Infrastructure + core services + dashboards |
+| `o11y` | Core + observability stack |
+| `testhub` | Core + testhub |
+
+```bash
+tilt up -- --profile core
+```
+
+---
 
 ## Adding a new agent
 

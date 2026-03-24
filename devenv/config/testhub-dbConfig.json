@@ -1,0 +1,30 @@
+{
+  "development": {
+    "write": {
+      "host": "host.docker.internal",
+      "port": "3306",
+      "username": "root",
+      "password": "Root@123",
+      "database": "testhub_database",
+      "pool": {
+        "max": 5,
+        "min": 0,
+        "acquire": 30000,
+        "idle": 10000
+      }
+    },
+    "read": {
+      "host": "host.docker.internal",
+      "port": "3306",
+      "username": "root",
+      "password": "Root@123",
+      "database": "testhub_database",
+      "pool": {
+        "max": 5,
+        "min": 0,
+        "acquire": 30000,
+        "idle": 10000
+      }
+    }
+  }
+}

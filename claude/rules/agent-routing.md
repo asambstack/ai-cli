@@ -12,6 +12,7 @@ When the user describes a task, automatically detect the intent and apply the co
 | "fix", "debug", "broken", "error", "failing", "not working", "crash" | **debug-agent** | Reproduce, diagnose root cause, apply minimal fix |
 | "add feature", "implement", "build", "create new", "plan" (single-step) | **feature-agent** | Analyze codebase, create phased implementation plan |
 | "test", "write tests", "add tests", "coverage", "TDD" | **test-agent** | Red-Green-Refactor, write tests first, verify 80%+ coverage |
+| "start services", "local setup", "tilt", "why is X down", "set up environment", "new machine", "bootstrap" | **debug-agent** + **dev-environment** skill | Diagnose environment issues, manage Tilt services, run setup |
 
 ## Rules
 
@@ -32,6 +33,7 @@ When the user describes a task, automatically detect the intent and apply the co
 | git-workflow | committing, creating PRs, or any git operations |
 | design-patterns | implementing new features that need architectural patterns (repository pattern, API envelopes) |
 | hooks-guide | configuring hooks, auto-accept permissions, or using TodoWrite |
+| dev-environment | starting/stopping services, environment issues, Tilt management, new machine setup |
 
 ## Fallback
 

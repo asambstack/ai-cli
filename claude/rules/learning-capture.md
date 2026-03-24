@@ -18,7 +18,7 @@ Run this command at the end of your task:
 ai learn -c <category> "<what you learned>"
 ```
 
-Categories: architecture, conventions, gotchas, integrations, domain
+Categories: architecture, conventions, gotchas, integrations, domain, dev-environment
 
 ## Rules
 

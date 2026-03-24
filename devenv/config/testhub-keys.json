@@ -1,0 +1,11 @@
+{
+  "development": {
+    "redis_auth_token": "",
+    "clickhouse": {
+      "url": "",
+      "username": "",
+      "password": ""
+    },
+    "kafka_brokers": "host.docker.internal:9092"
+  }
+}

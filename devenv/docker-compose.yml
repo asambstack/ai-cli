@@ -1,0 +1,164 @@
+# ═══════════════════════════════════════════════════════════════
+# Docker services managed by Tilt (o11y + context-generator)
+# Source of truth: ~/.ai-agents-repo/devenv/
+# NOTE: Paths must be absolute — this file lives outside ~/development
+# ═══════════════════════════════════════════════════════════════
+
+x-dev-dir: &dev-dir /Users/aditya/development
+x-devenv-dir: &devenv-dir /Users/aditya/.ai-agents-repo/devenv
+
+services:
+  # ─── O11Y Pipeline ─────────────────────────────────────────
+
+  o11y-ingest:
+    build:
+      context: /Users/aditya/development/observability-pipeline
+      dockerfile: /Users/aditya/.ai-agents-repo/devenv/dockerfiles/o11y-service.Dockerfile
+      args:
+        MODULE: ingest
+    container_name: tilt-o11y-ingest
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "9090:9090"
+    environment:
+      JAVA_X_OPTS: "-Xms256m -Xmx512m"
+      SERVER_PORT: 9090
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: host.docker.internal:9092
+      SPRING_DATASOURCE_URL: jdbc:postgresql://host.docker.internal:5432/obs
+      SPRING_DATASOURCE_USERNAME: browserstack
+      SPRING_DATASOURCE_PASSWORD: Password123
+      SPRING_ELASTICSEARCH_REST_URIS: http://host.docker.internal:9200
+      SPRING_REDIS_HOST: host.docker.internal
+      SPRING_REDIS_PORT: 6379
+
+  o11y-consumer:
+    build:
+      context: /Users/aditya/development/observability-pipeline
+      dockerfile: /Users/aditya/.ai-agents-repo/devenv/dockerfiles/o11y-service.Dockerfile
+      args:
+        MODULE: consumer
+    container_name: tilt-o11y-consumer
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "9091:9091"
+    environment:
+      JAVA_X_OPTS: "-Xms256m -Xmx512m"
+      SERVER_PORT: 9091
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: host.docker.internal:9092
+      SPRING_DATASOURCE_URL: jdbc:postgresql://host.docker.internal:5432/obs
+      SPRING_DATASOURCE_USERNAME: browserstack
+      SPRING_DATASOURCE_PASSWORD: Password123
+      SPRING_ELASTICSEARCH_REST_URIS: http://host.docker.internal:9200
+      SPRING_REDIS_HOST: host.docker.internal
+      SPRING_REDIS_PORT: 6379
+
+  o11y-logproxy:
+    build:
+      context: /Users/aditya/development/observability-pipeline
+      dockerfile: /Users/aditya/.ai-agents-repo/devenv/dockerfiles/o11y-service.Dockerfile
+      args:
+        MODULE: logproxy
+    container_name: tilt-o11y-logproxy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "8099:8099"
+    environment:
+      JAVA_X_OPTS: "-Xms256m -Xmx512m"
+      SERVER_PORT: 8099
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: host.docker.internal:9092
+      SPRING_DATASOURCE_URL: jdbc:postgresql://host.docker.internal:5432/obs
+      SPRING_DATASOURCE_USERNAME: browserstack
+      SPRING_DATASOURCE_PASSWORD: Password123
+      SPRING_ELASTICSEARCH_REST_URIS: http://host.docker.internal:9200
+      SPRING_REDIS_HOST: host.docker.internal
+      SPRING_REDIS_PORT: 6379
+
+  o11y-preprocessor:
+    build:
+      context: /Users/aditya/development/observability-pipeline
+      dockerfile: /Users/aditya/.ai-agents-repo/devenv/dockerfiles/o11y-service.Dockerfile
+      args:
+        MODULE: preprocessor
+    container_name: tilt-o11y-preprocessor
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "9093:9093"
+    environment:
+      JAVA_X_OPTS: "-Xms256m -Xmx512m"
+      SERVER_PORT: 9093
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: host.docker.internal:9092
+      SPRING_DATASOURCE_URL: jdbc:postgresql://host.docker.internal:5432/obs
+      SPRING_DATASOURCE_USERNAME: browserstack
+      SPRING_DATASOURCE_PASSWORD: Password123
+      SPRING_ELASTICSEARCH_REST_URIS: http://host.docker.internal:9200
+      SPRING_REDIS_HOST: host.docker.internal
+      SPRING_REDIS_PORT: 6379
+
+  o11y-api:
+    build:
+      context: /Users/aditya/development/observability-api
+      dockerfile: /Users/aditya/.ai-agents-repo/devenv/dockerfiles/o11y-api.Dockerfile
+    container_name: tilt-o11y-api
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "8085:8080"
+    environment:
+      JAVA_X_OPTS: "-Xms256m -Xmx512m"
+      SERVER_PORT: 8080
+      SPRING_DATASOURCE_URL: jdbc:postgresql://host.docker.internal:5432/obs
+      SPRING_DATASOURCE_USERNAME: browserstack
+      SPRING_DATASOURCE_PASSWORD: Password123
+      SPRING_ELASTICSEARCH_REST_URIS: http://host.docker.internal:9200
+      SPRING_REDIS_HOST: host.docker.internal
+      SPRING_REDIS_PORT: 6379
+      SPRING_TESTHUB_DATASOURCE_URL: jdbc:mysql://host.docker.internal:3306/testhub_database
+      SPRING_TESTHUB_DATASOURCE_USERNAME: root
+      SPRING_TESTHUB_DATASOURCE_PASSWORD: Root@123
+
+  # ─── Context Generator ────────────────────────────────────
+
+  context-generator:
+    build:
+      context: /Users/aditya/development/misc-services/context_generator/bstack_parser
+      dockerfile: Dockerfile
+      args:
+        - ssh_prv_key
+    container_name: tilt-context-generator
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    env_file:
+      - /Users/aditya/development/misc-services/context_generator/.env
+    ports:
+      - "3005:3000"
+    environment:
+      APP_ENV: ${APP_ENV:-dev}
+      POD_TYPE: "server"
+    volumes:
+      - /Users/aditya/development/misc-services/context_generator/bstack_parser/server:/app/server
+      - /Users/aditya/development/misc-services/context_generator/bstack_parser/configs:/config
+      - ~/.aws:/home/app/.aws
+
+  llm-service:
+    build:
+      context: /Users/aditya/development/misc-services/context_generator/llm_parser
+      dockerfile: Dockerfile
+      args:
+        - ssh_prv_key
+    container_name: tilt-llm-service
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    env_file:
+      - /Users/aditya/development/misc-services/context_generator/.env
+    ports:
+      - "3006:3001"
+    environment:
+      APP_ENV: ${APP_ENV:-dev}
+      PORT: 3001
+    volumes:
+      - /Users/aditya/development/misc-services/context_generator/llm_parser/src:/app/src
+      - /Users/aditya/development/misc-services/context_generator/llm_parser/configs:/config

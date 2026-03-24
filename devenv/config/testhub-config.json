@@ -1,0 +1,156 @@
+{
+  "api_version": "0.0.1",
+  "port": 3000,
+  "redis": {
+    "default": {
+      "host": "host.docker.internal",
+      "port": "6379"
+    },
+    "pcp": {
+      "host": "host.docker.internal",
+      "port": "6379"
+    }
+  },
+  "kafka": {
+    "debug": false,
+    "debug_mode": "cgrp,topic,fetch",
+    "sync_consumer": {
+      "client_id": "testhub-sync-cgrp",
+      "num_consumers": 1,
+      "group_id": "testhub-sync-local",
+      "rebalance": {
+        "1": {
+          "1": {
+            "partitions": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+          }
+        }
+      }
+    },
+    "builds_archival_consumer": {
+      "client_id": "testhub-builds-archival-cgrp",
+      "num_consumers": 1,
+      "group_id": "testhub-builds-archival-local",
+      "rebalance": {
+        "1": {
+          "1": {
+            "partitions": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+          }
+        }
+      }
+    },
+    "builds_purge_consumer": {
+      "client_id": "testhub-builds-purge-cgrp",
+      "num_consumers": 1,
+      "group_id": "testhub-builds-purge-local",
+      "rebalance": {
+        "1": {
+          "1": {
+            "partitions": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+          }
+        }
+      }
+    },
+    "generic_consumer": {
+      "client_id": "testhub-generic-cgrp",
+      "num_consumers": 1,
+      "group_id": "testhub-generic-local",
+      "rebalance": {
+        "1": {
+          "1": {
+            "partitions": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+          }
+        }
+      }
+    },
+    "history_consumer": {
+      "client_id": "testhub-history-cgrp",
+      "num_consumers": 1,
+      "group_id": "testhub-history-local",
+      "rebalance": {
+        "1": {
+          "1": {
+            "partitions": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+          }
+        }
+      }
+    },
+    "producer": {
+      "client_id": "testhub-producer",
+      "delivery_report": true,
+      "enable_idempotence": true
+    },
+    "topics": {
+      "sync_btcer_import_job": {
+        "name": "testhub.sync-btcer-import-job",
+        "partitions": 40,
+        "auto_offset_reset": "beginning"
+      },
+      "builds_archival": {
+        "name": "testhub.builds-archival",
+        "partitions": 20,
+        "auto_offset_reset": "beginning"
+      },
+      "builds_purge": {
+        "name": "testhub.builds-purge",
+        "partitions": 20,
+        "auto_offset_reset": "beginning"
+      },
+      "partner_notification": {
+        "name": "testhub.partner-notification",
+        "partitions": 40,
+        "auto_offset_reset": "beginning"
+      },
+      "generic_worker": {
+        "name": "testhub.generic-worker",
+        "partitions": 20,
+        "auto_offset_reset": "beginning"
+      },
+      "history_worker": {
+        "name": "testhub.history-worker",
+        "partitions": 20,
+        "auto_offset_reset": "beginning"
+      },
+      "webhooks": {
+        "name": "notification_preferences",
+        "partitions": 2,
+        "auto_offset_reset": "beginning"
+      }
+    }
+  },
+  "env": "development",
+  "product": "testhub",
+  "zombie": {
+    "port": "8000",
+    "server": "localhost"
+  },
+  "monitor_url": "https://alert.browserstack.com/alert",
+  "logging_dir": "/home/app/testhub/log",
+  "metrics_region": "dev",
+  "enableDBLogging": true,
+  "eds": {
+    "hostname": "localhost",
+    "port_udp": "8553",
+    "port_tcp": "443",
+    "should_log_event": false
+  },
+  "session": {
+    "name": "_authcookie",
+    "expiry": 7776000000
+  },
+  "queue_prefix": "bs",
+  "bs_base_path": "https://local.bsstag.com",
+  "s3": {
+    "bucket_name": "browserstack-testhub-local",
+    "expiry_seconds": 300,
+    "region": "us-east-1"
+  },
+  "ally": {
+    "host": "http://host.docker.internal:9090"
+  },
+  "ingestor": {
+    "internal_host": "http://host.docker.internal:9090"
+  },
+  "app_region": "us",
+  "default_region": "us",
+  "tcg_enabled": true
+}
