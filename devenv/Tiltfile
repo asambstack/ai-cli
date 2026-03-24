@@ -11,6 +11,9 @@ DEVENV = os.environ.get('HOME', '') + '/.ai-agents-repo/devenv'
 # Allow local-only usage regardless of k8s context
 allow_k8s_contexts(k8s_context())
 
+# Don't watch generated files (prevents reload loop)
+watch_settings(ignore=[DEVENV + '/docker-compose.generated.yml'])
+
 # ─── Load config ──────────────────────────────────────────────
 
 config_path = DEVENV + '/config.yaml'
@@ -287,7 +290,7 @@ local_resource('railsapp',
   serve_cmd='while true; do sleep 3600; done',
   readiness_probe=probe(tcp_socket=tcp_socket_action(port=443, host='local.bsstag.com'), period_secs=10, timeout_secs=3),
   resource_deps=['mysql', 'redis'],
-  links=['https://local.bsstag.com'],
+  links=[link('https://local.bsstag.com', 'Rails App — external, managed by nginx/passenger')],
   labels=['core'],
 )
 
@@ -298,7 +301,7 @@ local_resource('seleniumhub',
   serve_env=NODE16_ENV,
   readiness_probe=probe(tcp_socket=tcp_socket_action(port=8080), period_secs=5, timeout_secs=3, initial_delay_secs=5),
   resource_deps=['redis', 'kafka', 'railsapp'],
-  links=['http://localhost:8080'],
+  links=[link('http://localhost:8080', 'Selenium Hub — routes test sessions to browsers')],
   labels=['core'],
 )
 
@@ -307,6 +310,7 @@ local_resource('timeout-manager',
   serve_dir=DEV + '/seleniumhub',
   serve_env=NODE16_ENV,
   resource_deps=['redis', 'seleniumhub'],
+  links=[link('', 'Manages idle session timeouts via Redis')],
   labels=['core'],
 )
 
@@ -315,6 +319,7 @@ local_resource('kafka-uploader-raw',
   serve_dir=DEV + '/seleniumhub/apps/kafkaUploader',
   serve_env=NODE16_ENV,
   resource_deps=['kafka', 'redis', 'seleniumhub'],
+  links=[link('', 'Consumes raw_logs from Kafka, uploads to S3')],
   labels=['core'],
 )
 
@@ -323,6 +328,7 @@ local_resource('kafka-uploader-console',
   serve_dir=DEV + '/seleniumhub/apps/kafkaUploader',
   serve_env=NODE16_ENV,
   resource_deps=['kafka', 'redis', 'seleniumhub'],
+  links=[link('', 'Consumes console_logs from Kafka, uploads to S3')],
   labels=['core'],
 )
 
@@ -333,6 +339,7 @@ local_resource('ws-reconnect-proxy',
   serve_env=NODE16_ENV,
   readiness_probe=probe(tcp_socket=tcp_socket_action(port=9222), period_secs=5, timeout_secs=2, initial_delay_secs=3),
   resource_deps=['seleniumhub'],
+  links=[link('', 'WebSocket reconnection proxy — sits between client and hub')],
   labels=['core'],
 )
 
@@ -341,6 +348,7 @@ local_resource('terminal-cleanup',
   serve_dir=DEV + '/terminal-service/cleanup',
   serve_env=NODE20_ENV,
   resource_deps=['redis'],
+  links=[link('', 'Cleans up terminal instances via Redis job queues')],
   labels=['core'],
 )
 
@@ -351,7 +359,7 @@ local_resource('pusher',
   serve_env=NODE20_ENV,
   readiness_probe=probe(tcp_socket=tcp_socket_action(port=8000), period_secs=5, timeout_secs=2, initial_delay_secs=3),
   resource_deps=['redis'],
-  links=['http://localhost:8000'],
+  links=[link('http://localhost:8000', 'Real-time Socket.IO events to dashboards')],
   labels=['core'],
 )
 
@@ -360,6 +368,7 @@ local_resource('sidekiq',
   serve_dir=DEV + '/railsapp',
   serve_env=RAILS_ENV,
   resource_deps=['mysql', 'redis'],
+  links=[link('', 'Background job processor for Rails (email, exports, etc.)')],
   labels=['core'],
 )
 
@@ -373,7 +382,7 @@ local_resource('browserstack-fe',
   serve_env=NODE20_ENV,
   readiness_probe=probe(tcp_socket=tcp_socket_action(port=8081), period_secs=10, timeout_secs=3, initial_delay_secs=15),
   resource_deps=['railsapp'],
-  links=['https://local.bsstag.com:8081'],
+  links=[link('https://local.bsstag.com:8081', 'Old dashboard (Snorlax) — automate session viewer')],
   labels=['dashboard'],
 )
 
@@ -384,7 +393,7 @@ local_resource('frontend-o11y',
   serve_env=NODE22_ENV,
   readiness_probe=probe(tcp_socket=tcp_socket_action(port=8082), period_secs=10, timeout_secs=3, initial_delay_secs=20),
   resource_deps=['railsapp'],
-  links=['http://observability-local.bsstag.com:8082'],
+  links=[link('http://observability-local.bsstag.com:8082', 'New dashboard — observability, test runs, builds')],
   labels=['dashboard'],
 )
 
@@ -401,31 +410,35 @@ if profile in ['full', 'o11y']:
   dc_resource('o11y-ingest',
     labels=['o11y'],
     resource_deps=['kafka', 'postgresql', 'elasticsearch'],
+    links=[link('', 'REQUIRED — receives test events via HTTP, pushes to Kafka')],
     trigger_mode=TRIGGER_MODE_MANUAL, auto_init=False,
   )
 
   dc_resource('o11y-consumer',
     labels=['o11y'],
     resource_deps=['kafka', 'postgresql', 'elasticsearch'],
+    links=[link('', 'REQUIRED — reads Kafka, writes to PostgreSQL + Elasticsearch')],
     trigger_mode=TRIGGER_MODE_MANUAL, auto_init=False,
   )
 
   dc_resource('o11y-logproxy',
     labels=['o11y'],
     resource_deps=['kafka', 'postgresql', 'elasticsearch'],
+    links=[link('', 'OPTIONAL — proxies log downloads from S3 (only for "view logs")')],
     trigger_mode=TRIGGER_MODE_MANUAL, auto_init=False,
   )
 
   dc_resource('o11y-preprocessor',
     labels=['o11y'],
     resource_deps=['kafka', 'postgresql', 'elasticsearch'],
+    links=[link('', 'OPTIONAL — enriches events (quality gates, notifications)')],
     trigger_mode=TRIGGER_MODE_MANUAL, auto_init=False,
   )
 
   dc_resource('o11y-api',
     labels=['o11y'],
     resource_deps=['postgresql', 'elasticsearch', 'redis'],
-    links=['http://localhost:8085'],
+    links=[link('http://localhost:8085', 'REQUIRED — REST API for the new frontend dashboard')],
     trigger_mode=TRIGGER_MODE_MANUAL, auto_init=False,
   )
 
@@ -437,10 +450,10 @@ if profile in ['full', 'testhub']:
   local_resource('testhub',
     serve_cmd='BUILD_ENV=development node ./bin/www',
     serve_dir=DEV + '/testhub',
-    serve_env=NODE18_ENV,
+    serve_env=NODE20_ENV,
     readiness_probe=probe(http_get=http_get_action(port=3000, path='/health'), period_secs=10, timeout_secs=3, initial_delay_secs=10),
     resource_deps=['mysql', 'redis', 'kafka'],
-    links=['http://localhost:3000'],
+    links=[link('http://localhost:3000', 'Test management hub — builds, test runs, results')],
     labels=['testhub'],
   )
 
@@ -456,11 +469,12 @@ if profile in ['full', 'tcg']:
 
   dc_resource('context-generator',
     labels=['misc'],
-    links=['http://localhost:3005'],
+    links=[link('http://localhost:3005', 'AI test case generation server')],
     trigger_mode=TRIGGER_MODE_MANUAL, auto_init=False,
   )
 
   dc_resource('llm-service',
     labels=['misc'],
+    links=[link('', 'LLM backend for context generator (OpenAI/Azure)')],
     trigger_mode=TRIGGER_MODE_MANUAL, auto_init=False,
   )
