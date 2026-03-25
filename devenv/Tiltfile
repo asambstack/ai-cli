@@ -310,7 +310,7 @@ local_resource('timeout-manager',
   serve_dir=DEV + '/seleniumhub',
   serve_env=NODE16_ENV,
   resource_deps=['redis', 'seleniumhub'],
-  links=[link('', 'Manages idle session timeouts via Redis')],
+  links=[link('#', 'Manages idle session timeouts via Redis')],
   labels=['core'],
 )
 
@@ -319,7 +319,7 @@ local_resource('kafka-uploader-raw',
   serve_dir=DEV + '/seleniumhub/apps/kafkaUploader',
   serve_env=NODE16_ENV,
   resource_deps=['kafka', 'redis', 'seleniumhub'],
-  links=[link('', 'Consumes raw_logs from Kafka, uploads to S3')],
+  links=[link('#', 'Consumes raw_logs from Kafka, uploads to S3')],
   labels=['core'],
 )
 
@@ -328,7 +328,7 @@ local_resource('kafka-uploader-console',
   serve_dir=DEV + '/seleniumhub/apps/kafkaUploader',
   serve_env=NODE16_ENV,
   resource_deps=['kafka', 'redis', 'seleniumhub'],
-  links=[link('', 'Consumes console_logs from Kafka, uploads to S3')],
+  links=[link('#', 'Consumes console_logs from Kafka, uploads to S3')],
   labels=['core'],
 )
 
@@ -339,7 +339,7 @@ local_resource('ws-reconnect-proxy',
   serve_env=NODE16_ENV,
   readiness_probe=probe(tcp_socket=tcp_socket_action(port=9222), period_secs=5, timeout_secs=2, initial_delay_secs=3),
   resource_deps=['seleniumhub'],
-  links=[link('', 'WebSocket reconnection proxy — sits between client and hub')],
+  links=[link('#', 'WebSocket reconnection proxy — sits between client and hub')],
   labels=['core'],
 )
 
@@ -348,7 +348,7 @@ local_resource('terminal-cleanup',
   serve_dir=DEV + '/terminal-service/cleanup',
   serve_env=NODE20_ENV,
   resource_deps=['redis'],
-  links=[link('', 'Cleans up terminal instances via Redis job queues')],
+  links=[link('#', 'Cleans up terminal instances via Redis job queues')],
   labels=['core'],
 )
 
@@ -368,7 +368,7 @@ local_resource('sidekiq',
   serve_dir=DEV + '/railsapp',
   serve_env=RAILS_ENV,
   resource_deps=['mysql', 'redis'],
-  links=[link('', 'Background job processor for Rails (email, exports, etc.)')],
+  links=[link('#', 'Background job processor for Rails (email, exports, etc.)')],
   labels=['core'],
 )
 
@@ -410,28 +410,28 @@ if profile in ['full', 'o11y']:
   dc_resource('o11y-ingest',
     labels=['o11y'],
     resource_deps=['kafka', 'postgresql', 'elasticsearch'],
-    links=[link('', 'REQUIRED — receives test events via HTTP, pushes to Kafka')],
+    links=[link('#', 'REQUIRED — receives test events via HTTP, pushes to Kafka')],
     trigger_mode=TRIGGER_MODE_MANUAL, auto_init=False,
   )
 
   dc_resource('o11y-consumer',
     labels=['o11y'],
     resource_deps=['kafka', 'postgresql', 'elasticsearch'],
-    links=[link('', 'REQUIRED — reads Kafka, writes to PostgreSQL + Elasticsearch')],
+    links=[link('#', 'REQUIRED — reads Kafka, writes to PostgreSQL + Elasticsearch')],
     trigger_mode=TRIGGER_MODE_MANUAL, auto_init=False,
   )
 
   dc_resource('o11y-logproxy',
     labels=['o11y'],
     resource_deps=['kafka', 'postgresql', 'elasticsearch'],
-    links=[link('', 'OPTIONAL — proxies log downloads from S3 (only for "view logs")')],
+    links=[link('#', 'OPTIONAL — proxies log downloads from S3 (only for "view logs")')],
     trigger_mode=TRIGGER_MODE_MANUAL, auto_init=False,
   )
 
   dc_resource('o11y-preprocessor',
     labels=['o11y'],
     resource_deps=['kafka', 'postgresql', 'elasticsearch'],
-    links=[link('', 'OPTIONAL — enriches events (quality gates, notifications)')],
+    links=[link('#', 'OPTIONAL — enriches events (quality gates, notifications)')],
     trigger_mode=TRIGGER_MODE_MANUAL, auto_init=False,
   )
 
@@ -475,6 +475,6 @@ if profile in ['full', 'tcg']:
 
   dc_resource('llm-service',
     labels=['misc'],
-    links=[link('', 'LLM backend for context generator (OpenAI/Azure)')],
+    links=[link('#', 'LLM backend for context generator (OpenAI/Azure)')],
     trigger_mode=TRIGGER_MODE_MANUAL, auto_init=False,
   )
