@@ -85,7 +85,7 @@ services:
     ports:
       - "9091:9091"
     environment:
-      JAVA_X_OPTS: "-Xms256m -Xmx512m"
+      JAVA_X_OPTS: "-Xms256m -Xmx512m -Drails_auth.client_id=client-1234 -Drails_auth.client_keys=client-secret-1234"
       SERVER_PORT: 9091
       SPRING_KAFKA_BOOTSTRAP_SERVERS: host.docker.internal:9092
       SPRING_DATASOURCE_URL: jdbc:postgresql://host.docker.internal:5432/${PG_DB}
@@ -121,29 +121,7 @@ services:
       SPRING_REDIS_HOST: host.docker.internal
       SPRING_REDIS_PORT: 6379
 
-  o11y-preprocessor:
-    build:
-      context: ${DEV_DIR}/observability-pipeline
-      dockerfile: ${DEVENV}/dockerfiles/o11y-service.Dockerfile
-      args:
-        MODULE: preprocessor
-    container_name: tilt-o11y-preprocessor
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    ports:
-      - "9093:9093"
-    environment:
-      JAVA_X_OPTS: "-Xms256m -Xmx512m"
-      SERVER_PORT: 9093
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: host.docker.internal:9092
-      SPRING_DATASOURCE_URL: jdbc:postgresql://host.docker.internal:5432/${PG_DB}
-      SPRING_DATASOURCE_USERNAME: ${PG_USER}
-      SPRING_DATASOURCE_PASSWORD: ${PG_PASS}
-      SPRING_ELASTICSEARCH_REST_URIS: http://host.docker.internal:9200
-      SPRING_ELASTICSEARCH_REST_USERNAME: ${ES_USER}
-      SPRING_ELASTICSEARCH_REST_PASSWORD: ${ES_PASS}
-      SPRING_REDIS_HOST: host.docker.internal
-      SPRING_REDIS_PORT: 6379
+  # o11y-preprocessor removed — runs natively via Tilt local_resource
 
   o11y-api:
     build:

@@ -179,6 +179,13 @@ local_resource('setup-railsapp',
   auto_init=False,
 )
 
+local_resource('setup-es-reindex',
+  cmd='export PATH="' + RVM_GEMS + '/bin:' + RVM_GLOBAL + '/bin:' + RVM_RUBY_BIN + ':' + RVM_BIN + ':' + BASE_PATH + '" && export GEM_HOME="' + RVM_GEMS + '" && export GEM_PATH="' + RVM_GEMS + ':' + RVM_GLOBAL + '" && echo "Deleting all ES indices..." && curl -X DELETE "http://localhost:9200/_all" && echo "" && cd ' + DEV + '/railsapp && echo "Reindexing projects..." && bundle exec rake elastic_search_reindexing:projects 0 1000000 && echo "Reindexing builds..." && bundle exec rake elastic_search_reindexing:builds 0 1000000 && echo "Reindexing sessions..." && bundle exec rake elastic_search_reindexing:sessions 0 100000 && echo "ES reindexing complete"',
+  labels=['setup'],
+  trigger_mode=TRIGGER_MODE_MANUAL,
+  auto_init=False,
+)
+
 local_resource('setup-frontend-o11y',
   cmd='''
     cd ''' + DEV + '''/frontend &&
@@ -287,7 +294,7 @@ local_resource('kafka-topics',
 # ═══════════════════════════════════════════════════════════════
 
 local_resource('railsapp',
-  serve_cmd='while true; do sleep 3600; done',
+  serve_cmd='tail -f ' + DEV + '/railsapp/log/development.log',
   readiness_probe=probe(tcp_socket=tcp_socket_action(port=443, host='local.bsstag.com'), period_secs=10, timeout_secs=3),
   resource_deps=['mysql', 'redis'],
   links=[link('https://local.bsstag.com', 'Rails App — external, managed by nginx/passenger')],
@@ -320,6 +327,15 @@ local_resource('kafka-uploader-raw',
   serve_env=NODE16_ENV,
   resource_deps=['kafka', 'redis', 'seleniumhub'],
   links=[link('#', 'Consumes raw_logs from Kafka, uploads to S3')],
+  labels=['core'],
+)
+
+local_resource('kafka-uploader-raw-2',
+  serve_cmd='CONSUMER_ID=2 CONSUMER_TOPIC=raw_logs node kafkaUploaderRun.js',
+  serve_dir=DEV + '/seleniumhub/apps/kafkaUploader',
+  serve_env=NODE16_ENV,
+  resource_deps=['kafka', 'redis', 'seleniumhub'],
+  links=[link('#', 'Consumes raw_logs from Kafka (consumer 2), uploads to S3')],
   labels=['core'],
 )
 
@@ -364,11 +380,62 @@ local_resource('pusher',
 )
 
 local_resource('sidekiq',
-  serve_cmd='bundle exec sidekiq',
+  serve_cmd='./script/sidekiq-wrapper.sh export_to_safe_search_worker.yml export_to_safe_search_worker',
   serve_dir=DEV + '/railsapp',
   serve_env=RAILS_ENV,
   resource_deps=['mysql', 'redis'],
-  links=[link('#', 'Background job processor for Rails (email, exports, etc.)')],
+  links=[link('#', 'Sidekiq worker — safe search export')],
+  labels=['core'],
+)
+
+local_resource('sidekiq-execute-method',
+  serve_cmd='bundle exec sidekiq -C config/sidekiq/execute_method.yml',
+  serve_dir=DEV + '/railsapp',
+  serve_env=RAILS_ENV,
+  resource_deps=['mysql', 'redis'],
+  links=[link('#', 'Sidekiq worker — execute_method (testhub async calls)')],
+  labels=['core'],
+  trigger_mode=TRIGGER_MODE_MANUAL,
+  auto_init=False,
+)
+
+local_resource('sidekiq-cad-events',
+  serve_cmd='bundle exec sidekiq -C config/sidekiq/cad_automate_events_worker.yml',
+  serve_dir=DEV + '/railsapp',
+  serve_env=RAILS_ENV,
+  resource_deps=['mysql', 'redis', 'kafka'],
+  links=[link('#', 'Sidekiq worker — sends automate session data to o11y pipeline via Kafka')],
+  labels=['core'],
+  trigger_mode=TRIGGER_MODE_MANUAL,
+  auto_init=False,
+)
+
+local_resource('sidekiq-framework-workers',
+  serve_cmd='bundle exec sidekiq -C config/sidekiq/automate_framework_common_workers.yml',
+  serve_dir=DEV + '/railsapp',
+  serve_env=RAILS_ENV,
+  resource_deps=['mysql', 'redis', 'kafka'],
+  links=[link('#', 'Sidekiq worker — framework/QIG events for o11y')],
+  labels=['core'],
+  trigger_mode=TRIGGER_MODE_MANUAL,
+  auto_init=False,
+)
+
+local_resource('terminal-success-updater',
+  serve_cmd='bundle exec rake terminal:terminal_success_status_update',
+  serve_dir=DEV + '/railsapp',
+  serve_env=RAILS_ENV,
+  resource_deps=['mysql', 'redis'],
+  links=[link('#', 'Rake task — updates terminal success status')],
+  labels=['core'],
+)
+
+local_resource('terminal-fail-updater',
+  serve_cmd='bundle exec rake terminal:terminal_fail_status_update',
+  serve_dir=DEV + '/railsapp',
+  serve_env=RAILS_ENV,
+  resource_deps=['mysql', 'redis'],
+  links=[link('#', 'Rake task — updates terminal failure status')],
   labels=['core'],
 )
 
@@ -398,47 +465,54 @@ local_resource('frontend-o11y',
 )
 
 # ═══════════════════════════════════════════════════════════════
-# O11Y — Containerized (manual trigger)
+# O11Y — Native (manual trigger)
+# Pre-build: cd observability-pipeline && ./gradlew bootJar
+#            cd observability-api && ./gradlew bootJar
 # ═══════════════════════════════════════════════════════════════
 
 if profile in ['full', 'o11y']:
-  # Generate docker-compose with correct paths
-  local('bash ' + DEVENV + '/generate-compose.sh')
-  local('docker rm -f tilt-o11y-ingest tilt-o11y-consumer tilt-o11y-logproxy tilt-o11y-preprocessor tilt-o11y-api tilt-context-generator tilt-llm-service 2>/dev/null || true')
-  docker_compose(DEVENV + '/docker-compose.generated.yml', project_name='devenv')
-
-  dc_resource('o11y-ingest',
-    labels=['o11y'],
+  local_resource('o11y-ingest',
+    serve_cmd='java -Xms256m -Xmx512m -jar ' + DEV + '/observability-pipeline/ingest/build/libs/*.jar',
     resource_deps=['kafka', 'postgresql', 'elasticsearch'],
+    readiness_probe=probe(http_get=http_get_action(port=9090, path='/actuator/health'), period_secs=10, timeout_secs=3, initial_delay_secs=30),
     links=[link('#', 'REQUIRED — receives test events via HTTP, pushes to Kafka')],
+    labels=['o11y'],
     trigger_mode=TRIGGER_MODE_MANUAL, auto_init=False,
   )
 
-  dc_resource('o11y-consumer',
-    labels=['o11y'],
+  local_resource('o11y-consumer',
+    serve_cmd='java -Xms256m -Xmx512m -Drails_auth.client_id=client-1234 -Drails_auth.client_keys=client-secret-1234 -jar ' + DEV + '/observability-pipeline/consumer/build/libs/*.jar',
     resource_deps=['kafka', 'postgresql', 'elasticsearch'],
+    readiness_probe=probe(http_get=http_get_action(port=9091, path='/actuator/health'), period_secs=10, timeout_secs=3, initial_delay_secs=30),
     links=[link('#', 'REQUIRED — reads Kafka, writes to PostgreSQL + Elasticsearch')],
+    labels=['o11y'],
     trigger_mode=TRIGGER_MODE_MANUAL, auto_init=False,
   )
 
-  dc_resource('o11y-logproxy',
-    labels=['o11y'],
+  local_resource('o11y-logproxy',
+    serve_cmd='java -Xms256m -Xmx512m -jar ' + DEV + '/observability-pipeline/logproxy/build/libs/*.jar',
     resource_deps=['kafka', 'postgresql', 'elasticsearch'],
+    readiness_probe=probe(http_get=http_get_action(port=8099, path='/actuator/health'), period_secs=10, timeout_secs=3, initial_delay_secs=30),
     links=[link('#', 'OPTIONAL — proxies log downloads from S3 (only for "view logs")')],
+    labels=['o11y'],
     trigger_mode=TRIGGER_MODE_MANUAL, auto_init=False,
   )
 
-  dc_resource('o11y-preprocessor',
-    labels=['o11y'],
+  local_resource('o11y-preprocessor',
+    serve_cmd='java -Xms256m -Xmx512m -jar ' + DEV + '/observability-pipeline/preprocessor/build/libs/*.jar',
     resource_deps=['kafka', 'postgresql', 'elasticsearch'],
-    links=[link('#', 'OPTIONAL — enriches events (quality gates, notifications)')],
+    readiness_probe=probe(http_get=http_get_action(port=9093, path='/actuator/health'), period_secs=10, timeout_secs=3, initial_delay_secs=30),
+    links=[link('#', 'REQUIRED for non-SDK — processes queued_sessions_info from Kafka')],
+    labels=['o11y'],
     trigger_mode=TRIGGER_MODE_MANUAL, auto_init=False,
   )
 
-  dc_resource('o11y-api',
-    labels=['o11y'],
+  local_resource('o11y-api',
+    serve_cmd='java -Xms256m -Xmx512m -jar ' + DEV + '/observability-api/build/libs/*.jar --server.port=8085',
     resource_deps=['postgresql', 'elasticsearch', 'redis'],
+    readiness_probe=probe(http_get=http_get_action(port=8085, path='/actuator/health'), period_secs=10, timeout_secs=3, initial_delay_secs=30),
     links=[link('http://localhost:8085', 'REQUIRED — REST API for the new frontend dashboard')],
+    labels=['o11y'],
     trigger_mode=TRIGGER_MODE_MANUAL, auto_init=False,
   )
 

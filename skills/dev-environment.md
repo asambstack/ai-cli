@@ -60,21 +60,21 @@ UI: http://localhost:10350
 | browserstack-fe | 20 | 8081 | Old dashboard, needs `NODE_OPTIONS=--openssl-legacy-provider` |
 | frontend-o11y | 22 | 8082 | New dashboard (monorepo `frontend/apps/o11y`), uses `BSTACK_STAGE=dynamic_urls` to point to local o11y-api |
 
-### O11Y (manual trigger, Docker)
-| Service | Port | Profile |
-|---------|------|---------|
-| o11y-ingest | 9090 | full, o11y |
-| o11y-consumer | 9091 | full, o11y |
-| o11y-logproxy | 8099 | full, o11y |
-| o11y-preprocessor | 9093 | full, o11y |
-| o11y-api | 8085 | full, o11y |
+### O11Y (manual trigger, native Java)
+| Service | Port | Profile | Notes |
+|---------|------|---------|-------|
+| o11y-ingest | 9090 | full, o11y | REQUIRED — receives HTTP events, pushes to Kafka |
+| o11y-consumer | 9091 | full, o11y | REQUIRED — reads Kafka, writes to PostgreSQL + ES |
+| o11y-preprocessor | 9093 | full, o11y | REQUIRED for non-SDK — processes queued_sessions_info |
+| o11y-logproxy | 8099 | full, o11y | OPTIONAL — log download proxy |
+| o11y-api | 8085 | full, o11y | REQUIRED — REST API for frontend-o11y |
 
 ### Other (manual trigger)
-| Service | Port | Profile |
-|---------|------|---------|
-| testhub | 3000 (Node 18) | full, testhub |
-| context-generator | 3005 (Docker) | full, tcg |
-| llm-service | 3006 (Docker) | full, tcg |
+| Service | Port | Profile | Notes |
+|---------|------|---------|-------|
+| testhub | 3000 (Node 20) | full, testhub | Native |
+| context-generator | 3005 | full, tcg | Docker (only Docker service remaining) |
+| llm-service | 3006 | full, tcg | Docker |
 
 ## Node Version Map
 
@@ -181,7 +181,10 @@ o11y:
   hosts: ["http://localhost:8085"]      # local o11y-api (NOT staging)
 
 testhub:
-  url: "http://localhost:3000"           # local testhub (usually already correct)
+  url: "http://localhost:3000"           # local testhub
+  server_id: "client-1234"              # REQUIRED — must match o11y-pipeline testhub.username
+  server_secret:
+    - "client-secret-1234"              # REQUIRED — must match o11y-pipeline testhub.password
 
 kafka:
   brokers:
@@ -203,17 +206,28 @@ kafka:
 ### frontend-o11y (.env)
 - `BSTACK_STAGE=dynamic_urls` with `VITE_API_URL=http://localhost:8085` (set by Tilt from `devenv/config/frontend-o11y-local.env`)
 
+### Redis switches (REQUIRED for data flow)
+These must be set in Redis for Rails to send events to the o11y pipeline:
+```bash
+redis-cli SET automation_events_ingestion_switch "true"
+redis-cli SADD enable_sessions_flow_for_groups -1
+```
+Without these, Rails silently drops all CAD/testhub events.
+
 ### Data flow
 ```
-Test session → SeleniumHub → RailsApp → Kafka (localhost:9092)
-                                          ↓
-                              o11y-pipeline ingest (9090) → Kafka topics
-                                          ↓
-                              o11y-pipeline consumer (9091) → PostgreSQL + Elasticsearch
-                                          ↓
-                              o11y-api (8085) ← frontend-o11y (8082) reads from here
-                                          ↓
-                              testhub (3000) ← also reads/writes session data
+Non-SDK (Automate/AppAutomate):
+  Rails → Sidekiq cad_events → Kafka (queued_sessions_info)
+    → o11y-preprocessor (REQUIRED for non-SDK) → Kafka (event-batch)
+      → o11y-consumer → PostgreSQL + Elasticsearch
+        → o11y-api (8085) ← frontend-o11y (8082)
+
+SDK sessions:
+  SDK → o11y-ingest (9090, HTTP) → Kafka (event-batch)
+    → o11y-consumer → PostgreSQL + Elasticsearch
+
+Direct metadata:
+  Rails → Sidekiq execute_method → TestHub (3000, HTTP)
 ```
 
 ## Updating the Tiltfile
@@ -229,4 +243,13 @@ When you discover something new about the environment:
 - kafka-uploader for exception_logs is not needed locally — conf.json doesn't have consumer config for it, and S3 uploads aren't needed in dev (2026-03-25)
 - For local o11y E2E: railsapp config.yml must change o11y.hosts to localhost:8085 and kafka.brokers to localhost:9092. All other services already point to localhost by default. o11y-api has empty testhub DB password in properties — docker-compose injects it from devenv/config.yaml (2026-03-25)
 - testhub needs Node 20 despite .nvmrc saying 18.12.1 — cheerio/undici dependency uses `File` global only available in Node 20+ (2026-03-25)
+- ES disk watermark resets on restart — add watermark overrides to elasticsearch.yml permanently, not just via transient API call. Config at `~/development/elasticsearch/elasticsearch-6.8.18/config/elasticsearch.yml` (2026-03-25)
+- Pusher conf.json: remove `"tls": {}` from turboscale and accessibility Redis sentinel configs for local dev — local Redis doesn't support TLS, and ioredis treats empty `{}` as "enable TLS" causing ETIMEDOUT on TLSSocket (2026-03-25)
 - frontend-o11y (new dashboard) runs on port 8082 to avoid conflict with browserstack-fe on 8081. Uses `BSTACK_STAGE=dynamic_urls` with VITE_API_* env vars to point to local o11y-api:8085 and testhub:3000. Config at `~/.ai-agents-repo/devenv/config/frontend-o11y-local.env`. To switch to staging APIs, change .env to `BSTACK_STAGE=local-staging` (2026-03-25)
+- O11Y services (ingest, consumer, preprocessor, logproxy, api) must run NATIVELY, not in Docker. Kafka `advertised.host.name=localhost` in server.properties causes Docker containers to fail after initial bootstrap — Kafka tells clients to reconnect to `localhost:9092` which is the container itself. Native services don't have this issue. (2026-03-26)
+- o11y-consumer needs `-Drails_auth.client_id=client-1234 -Drails_auth.client_keys=client-secret-1234` JVM args — property name uses underscore+dot which Spring env vars can't map (2026-03-26)
+- o11y-preprocessor is REQUIRED for non-SDK automate sessions — it consumes from `queued_sessions_info` Kafka topic (not optional as initially thought) (2026-03-26)
+- Rails needs Redis switches enabled for CAD flow: `automation_events_ingestion_switch=true` and `enable_sessions_flow_for_groups` set with `-1` (all groups). Without these, Rails silently drops all events. (2026-03-26)
+- Rails testhub config needs `server_id` and `server_secret` — without them the TestHub::ApiClient initializer crashes (2026-03-26)
+- Sidekiq workers needed for o11y flow: `cad_automate_events_worker` (sends to Kafka), `execute_method` (sends to testhub via HTTP), `automate_framework_common_workers` (QIG events) (2026-03-26)
+- Docker is only needed for context-generator and llm-service (which have custom Dockerfiles). All other services run natively. Colima only required if using context-generator. (2026-03-26)
